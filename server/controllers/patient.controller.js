@@ -1,4 +1,5 @@
 const Patient = require('../models/Patient.model');
+const User = require('../models/User.model');
 
 // @desc    Get patient profile
 // @route   GET /api/patients/profile
@@ -6,7 +7,7 @@ const getProfile = async (req, res, next) => {
     try {
         const patient = await Patient.findOne({ userId: req.user._id }).populate(
             'userId',
-            'name email phone'
+            'name email phone avatar'
         );
 
         if (!patient) {
@@ -30,6 +31,7 @@ const getProfile = async (req, res, next) => {
 const updateProfile = async (req, res, next) => {
     try {
         const {
+            phone,
             age,
             gender,
             dateOfBirth,
@@ -40,6 +42,11 @@ const updateProfile = async (req, res, next) => {
             knownAllergies,
             currentMedications,
         } = req.body;
+
+        // Update phone on User model
+        if (phone !== undefined) {
+            await User.findByIdAndUpdate(req.user._id, { phone });
+        }
 
         const patient = await Patient.findOneAndUpdate(
             { userId: req.user._id },
@@ -75,3 +82,4 @@ const updateProfile = async (req, res, next) => {
 };
 
 module.exports = { getProfile, updateProfile };
+

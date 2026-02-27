@@ -10,12 +10,26 @@ const triageRoutes = require('./routes/triage.routes');
 const aiRoutes = require('./routes/ai.routes');
 const clinicianRoutes = require('./routes/clinician.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 const app = express();
 
 // --- Middleware ---
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            process.env.CLIENT_URL || 'http://localhost:5173',
+            'http://localhost:8080',
+            'http://localhost:8081',
+            'http://localhost:5173',
+        ];
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
@@ -34,6 +48,7 @@ app.use('/api/triage', triageRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/clinician', clinicianRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // --- 404 Handler ---
 app.use((req, res) => {
