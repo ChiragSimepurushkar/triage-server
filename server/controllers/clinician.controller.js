@@ -53,6 +53,19 @@ const reviewSession = async (req, res, next) => {
 
         session.status = 'reviewed';
         session.assignedClinician = req.user._id;
+
+        // Save clinical notes even without urgency override
+        const { notes } = req.body;
+        if (notes && notes.trim().length > 0) {
+            session.clinicianOverride = {
+                clinicianId: req.user._id,
+                notes: notes.trim(),
+                finalUrgency: session.aiRecommendation?.urgency_level || 3,
+                finalUrgencyLabel: session.aiRecommendation?.urgency_label || 'MODERATE',
+                timestamp: new Date(),
+            };
+        }
+
         await session.save();
 
         // Notify the patient
