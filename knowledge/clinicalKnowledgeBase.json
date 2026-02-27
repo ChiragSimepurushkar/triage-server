@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "last_updated": "2026-02-27",
     "source": "Based on Manchester Triage System (MTS), Emergency Severity Index (ESI v4), WHO Emergency Care guidelines, and ICD-10-CM clinical definitions.",
     "total_clusters": 22,
@@ -29,6 +29,11 @@
                 "hr_gt": 100,
                 "hr_lt": 50
             },
+            "clarifying_questions": [
+                "Did the pain start suddenly or build up gradually?",
+                "Have you taken any erectile dysfunction medication (like Viagra or Cialis) in the last 48 hours?",
+                "Does the pain get worse when you press on your chest, take a deep breath, or lie flat?"
+            ],
             "next_actions": [
                 "Administer 12-lead ECG immediately (within 10 minutes of arrival)",
                 "Activate cath lab / call cardiologist on duty if STEMI confirmed",
@@ -84,6 +89,11 @@
                 "rr_gt": 25,
                 "hr_gt": 120
             },
+            "clarifying_questions": [
+                "Are you able to speak in full sentences right now?",
+                "Do you have a history of asthma, COPD, or heart failure?",
+                "Have you been bedridden recently or had any recent surgeries?"
+            ],
             "next_actions": [
                 "Apply high-flow oxygen (15L via non-rebreather mask) immediately",
                 "Nebulised salbutamol (2.5-5mg) + ipratropium bromide (0.5mg)",
@@ -134,6 +144,11 @@
                 "bp_systolic_gt": 185,
                 "bp_diastolic_gt": 110
             },
+            "clarifying_questions": [
+                "When exactly did these symptoms first start (last known normal time)?",
+                "Are you currently taking any blood thinners like Warfarin or Eliquis?",
+                "Can you smile evenly and raise both arms without one drifting down?"
+            ],
             "next_actions": [
                 "Activate stroke code / call neurology team immediately",
                 "Non-contrast CT head STAT (within 25 minutes of arrival)",
@@ -189,6 +204,11 @@
                 "hr_gt": 120,
                 "spo2_lt": 94
             },
+            "clarifying_questions": [
+                "Do you feel like your throat is closing, or are you having trouble swallowing?",
+                "Were you recently stung by an insect, or did you eat a known allergen or take a new medication?",
+                "Do you have an EpiPen with you right now?"
+            ],
             "next_actions": [
                 "Administer Epinephrine (adrenaline) 0.5mg IM (1:1000) in the anterolateral thigh — FIRST LINE",
                 "Call for resuscitation team / senior physician immediately",
@@ -241,6 +261,11 @@
                 "rr_gt": 22,
                 "temp_gt": 38.3
             },
+            "clarifying_questions": [
+                "Have you recently had a medical procedure, surgery, or been treated for an infection (like a UTI or pneumonia)?",
+                "Are you experiencing severe, uncontrollable shaking or chills?",
+                "Has the patient seemed unusually confused, drowsy, or difficult to wake up today?"
+            ],
             "next_actions": [
                 "Draw blood cultures x2 sets BEFORE administering antibiotics",
                 "Administer broad-spectrum IV antibiotics within 1 hour (e.g. Piperacillin-Tazobactam + Vancomycin)",
@@ -292,6 +317,11 @@
                 "bp_systolic_gt": 180,
                 "bp_diastolic_gt": 120
             },
+            "clarifying_questions": [
+                "Are you experiencing any chest pain, shortness of breath, or back pain right now?",
+                "Have you noticed any sudden blurriness or loss of vision?",
+                "Do you have a history of high blood pressure, and have you missed any doses of your medication?"
+            ],
             "next_actions": [
                 "Continuous BP monitoring (every 5-15 minutes initially)",
                 "IV antihypertensive therapy (Labetalol, Nicardipine, or Clevidipine)",
@@ -345,6 +375,11 @@
                 "bp_systolic_lt": 100,
                 "rr_gt": 20
             },
+            "clarifying_questions": [
+                "Does your neck feel unusually stiff, or does looking at bright lights hurt your eyes?",
+                "Have you traveled outside the country recently?",
+                "Do you have a new, persistent cough, or any pain when you urinate?"
+            ],
             "next_actions": [
                 "Full sepsis screen: Blood cultures x2, FBC, CRP, procalcitonin, LFTs, U&E",
                 "Urinalysis + MSU culture",
@@ -400,6 +435,11 @@
                 "hr_gt": 110,
                 "spo2_lt": 95
             },
+            "clarifying_questions": [
+                "Did you lose consciousness or black out, even for a few seconds?",
+                "Are you currently taking any blood-thinning medications?",
+                "Are you experiencing any numbness, tingling, or inability to move your fingers or toes?"
+            ],
             "next_actions": [
                 "Cervical spine immobilisation if mechanism suggests spinal injury",
                 "Primary survey: Airway, Breathing, Circulation (ABCDE)",
@@ -452,6 +492,11 @@
                 "hr_gt": 100,
                 "bp_systolic_lt": 100
             },
+            "clarifying_questions": [
+                "Did the pain start around your belly button and move to the lower right side of your stomach?",
+                "Is there any chance you could be pregnant right now?",
+                "Does the pain get sharply worse when you cough, jump, or hit a bump in the road?"
+            ],
             "next_actions": [
                 "Surgical team review — assess for peritonism (rebound tenderness, guarding)",
                 "FBC, CRP, LFTs, amylase/lipase, U&E, group and screen",
@@ -506,6 +551,11 @@
                 "bp_systolic_lt": 90,
                 "rr_gt": 22
             },
+            "clarifying_questions": [
+                "When was the last time you ate or took your insulin/diabetes medication?",
+                "Have you been urinating much more frequently or feeling extremely thirsty today?",
+                "Have you recently been sick with a cold, infection, or stomach bug?"
+            ],
             "next_actions": [
                 "Capillary blood glucose IMMEDIATELY (point-of-care)",
                 "If glucose < 3.5 mmol/L: oral glucose gel if conscious, or IV 50% dextrose if not",
@@ -558,6 +608,11 @@
                 "bp_systolic_lt": 90,
                 "spo2_lt": 94
             },
+            "clarifying_questions": [
+                "Do you feel like you are going to pass out right now, or have you already fainted?",
+                "Are you experiencing any chest pain or shortness of breath with these palpitations?",
+                "Has this happened to you before, and if so, how long has it been going on this time?"
+            ],
             "next_actions": [
                 "12-lead ECG immediately and rhythm strip",
                 "Cardiac monitoring — continuous pulse oximetry",
@@ -611,6 +666,11 @@
                 "hr_gt": 130,
                 "temp_gt": 38.5
             },
+            "clarifying_questions": [
+                "Are you currently having thoughts of hurting yourself or ending your life, and do you have a plan?",
+                "Have you consumed any drugs, alcohol, or taken any medications today?",
+                "Are you seeing or hearing things that other people do not seem to notice?"
+            ],
             "next_actions": [
                 "Ensure patient and staff safety — de-escalation as first approach",
                 "Risk assessment: suicidal intent, plan, means, protective factors",
@@ -666,6 +726,11 @@
                 "bp_systolic_lt": 90,
                 "rr_gt": 20
             },
+            "clarifying_questions": [
+                "Have you recently had surgery, been bedridden, or been on a long flight?",
+                "Are you coughing up any blood?",
+                "Do you have any pain, swelling, or redness in one of your legs?"
+            ],
             "next_actions": [
                 "High-flow oxygen and continuous monitoring",
                 "Calculate Wells PE Score — if high probability, proceed to CTPA immediately",
@@ -720,6 +785,11 @@
                 "temp_gt": 37.8,
                 "hr_gt": 100
             },
+            "clarifying_questions": [
+                "Does the pain shoot around to your back, flank, or shoulder?",
+                "Have you noticed any blood in your vomit or your stool?",
+                "When was your last bowel movement, and was it normal for you?"
+            ],
             "next_actions": [
                 "Abdominal examination: location, character, radiation, guarding, bowel sounds",
                 "FBC, CRP, U&E, LFTs, amylase if epigastric pain",
@@ -770,6 +840,11 @@
                 "temp_gt": 38.0,
                 "hr_gt": 100
             },
+            "clarifying_questions": [
+                "Are you experiencing any fever, severe chills, or pain in your mid-to-lower back?",
+                "Is there any visible blood in your urine, or does it smell unusually strong?",
+                "Do you currently have a urinary catheter, or have you had one recently?"
+            ],
             "next_actions": [
                 "Urinalysis + MSU for culture and sensitivity before antibiotics",
                 "Blood cultures if fever/systemic sepsis features present",
@@ -819,6 +894,11 @@
             "color": "yellow",
             "clinical_context": "Musculoskeletal injuries are common and rarely immediately life-threatening. Key distinction: fracture vs sprain vs tendon injury. Ottawa rules guide X-ray decisions for ankle and knee injuries. Compartment syndrome is a rare but limb-threatening complication of severe closed injuries — suspect if pain out of proportion, pallor, paraesthesia, paralysis.",
             "vital_flags": {},
+            "clarifying_questions": [
+                "Are you able to put any weight on the injured area or move the joint at all?",
+                "Is there any numbness, tingling, or 'pins and needles' feeling below the injury?",
+                "Did you hear a 'pop' or 'snap' when the injury happened?"
+            ],
             "next_actions": [
                 "Clinical assessment: neurovascular status distal to injury (pulse, sensation, movement)",
                 "Apply Ottawa Rules to determine need for X-ray",
@@ -870,6 +950,11 @@
                 "temp_gt": 38.5,
                 "spo2_lt": 95
             },
+            "clarifying_questions": [
+                "Do you have a very high fever, or is it mostly just a sore throat and runny nose?",
+                "Are you having any difficulty breathing, or struggling to swallow your own saliva?",
+                "Have these symptoms been getting progressively worse over the last week?"
+            ],
             "next_actions": [
                 "Assess Centor/McIsaac Score for bacterial pharyngitis",
                 "Throat swab for culture if Centor score 3-4",
@@ -921,6 +1006,11 @@
                 "hr_gt": 100,
                 "bp_systolic_lt": 100
             },
+            "clarifying_questions": [
+                "Are you able to keep any sips of water down, or are you vomiting everything immediately?",
+                "When was the last time you urinated, and was it very dark in color?",
+                "Have you had severe, watery diarrhea for more than 24 hours?"
+            ],
             "next_actions": [
                 "Assess degree of dehydration (mild/moderate/severe)",
                 "U&E + glucose (electrolyte imbalance common with vomiting/diarrhoea)",
@@ -971,6 +1061,11 @@
             "vital_flags": {
                 "bp_systolic_lt": 90
             },
+            "clarifying_questions": [
+                "Is the rash spreading very rapidly, or are there any large blisters forming?",
+                "Are you having any trouble breathing, or does your throat feel tight?",
+                "Have you started any new medications or eaten anything unusual recently?"
+            ],
             "next_actions": [
                 "Confirm no airway involvement (throat inspection), no systemic symptoms",
                 "Identify potential trigger (contact, food, drug, insect)",
@@ -1017,6 +1112,11 @@
             "vital_flags": {
                 "temp_gt": 38.0
             },
+            "clarifying_questions": [
+                "Are you experiencing any loss of bowel or bladder control, or numbness in your groin/saddle area?",
+                "Does the pain shoot sharply down your leg, past your knee, into your foot?",
+                "Do you have a fever, or have you recently had unexplained weight loss?"
+            ],
             "next_actions": [
                 "Screen for red flags: saddle anaesthesia, bowel/bladder symptoms, bilateral limb weakness",
                 "Neurological examination: power, reflexes, sensation in legs",
@@ -1069,6 +1169,11 @@
                 "hr_gt": 130,
                 "spo2_lt": 94
             },
+            "clarifying_questions": [
+                "Have you ever had a panic attack that felt exactly like this before?",
+                "Are you feeling a numbness or tingling sensation in your fingers or around your mouth?",
+                "Do you have any history of heart problems, or is this the very first time you have felt this way?"
+            ],
             "next_actions": [
                 "Rule out organic causes: 12-lead ECG, SpO2, blood glucose, capillary gas if hyperventilating",
                 "Blood tests: TFTs (thyrotoxicosis exclusion), FBC, U&E",
@@ -1119,6 +1224,11 @@
             "vital_flags": {
                 "hr_gt": 100
             },
+            "clarifying_questions": [
+                "Have you vomited anything that looks like dark coffee grounds, or noticed black, tarry stools?",
+                "Are you able to drink small sips of water without immediately throwing them back up?",
+                "Does the discomfort feel more like a burning sensation behind your breastbone after eating?"
+            ],
             "next_actions": [
                 "Screen for red flags: blood in vomit/stool, weight loss, dysphagia, age > 55 new onset",
                 "Dietary advice: avoid triggers (spicy food, caffeine, alcohol, lying flat post meals)",
