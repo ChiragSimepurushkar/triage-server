@@ -2,8 +2,10 @@ const TriageSession = require('../models/TriageSession.model');
 const AIRecommendation = require('../models/AIRecommendation.model');
 const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
-const { generateTriageResponse } = require('../services/gemini.service');
+const { generateTriageResponse, initGemini } = require('../services/gemini.service');
 const { sendCriticalAlert } = require('../services/email.service');
+const fs = require('fs');
+const path = require('path');
 
 // @desc    Analyze a triage session with AI
 // @route   POST /api/ai/analyze/:sessionId
@@ -135,4 +137,120 @@ const getRecommendation = async (req, res, next) => {
     }
 };
 
-module.exports = { analyzeSession, getRecommendation };
+// @desc    Parse health data file with Gemini AI
+// @route   POST /api/ai/parse-health-file
+const parseHealthFile = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        const geminiModel = initGemini();
+        if (!geminiModel) {
+            return res.status(503).json({ success: false, message: 'AI service not configured' });
+        }
+
+        const filePath = req.file.path;
+        const fileName = req.file.originalname;
+        const mimeType = req.file.mimetype;
+        const ext = path.extname(fileName).toLowerCase();
+
+        const PARSE_PROMPT = `You are a medical data extraction AI. Parse the following health data and extract structured information.
+
+Return a JSON object with EXACTLY this structure (use empty arrays/objects for missing data):
+{
+  "symptoms": [{ "name": "symptom name", "severity": 5, "bodyArea": "area" }],
+  "vitals": {
+    "bloodPressureSystolic": number or null,
+    "bloodPressureDiastolic": number or null,
+    "heartRate": number or null,
+    "temperature": number or null,
+    "respiratoryRate": number or null,
+    "oxygenSaturation": number or null
+  },
+  "conditions": ["condition1", "condition2"],
+  "medications": [{ "name": "med name", "dosage": "dose", "frequency": "freq" }],
+  "summary": "Brief summary of the health data found"
+}
+
+IMPORTANT:
+- severity should be 1-10 scale
+- bodyArea should be one of: Head, Chest, Abdomen, Back, Arms, Legs, Skin, General
+- temperature in Celsius
+- If a value is not found, use null for vitals and empty arrays for lists
+- Extract as much data as possible from the file
+- For images of medical reports, extract all visible values
+`;
+
+        let result;
+
+        if (mimeType.startsWith('image/')) {
+            // Image file — use Gemini multimodal
+            const imageData = fs.readFileSync(filePath);
+            const base64 = imageData.toString('base64');
+
+            result = await geminiModel.generateContent([
+                PARSE_PROMPT + '\n\nThis is an image of a medical report. Extract all visible health data.',
+                {
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: base64,
+                    },
+                },
+            ]);
+        } else {
+            // Text file (XML, JSON, CSV, etc.)
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+            // Limit content to avoid token limits
+            const truncated = fileContent.slice(0, 15000);
+
+            result = await geminiModel.generateContent(
+                PARSE_PROMPT + `\n\nFile type: ${ext}\nFile name: ${fileName}\n\nFile content:\n${truncated}`
+            );
+        }
+
+        // Clean up temp file
+        try { fs.unlinkSync(filePath); } catch { }
+
+        const text = result.response.text();
+
+        // Parse the JSON from Gemini's response
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch {
+            const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (jsonMatch) {
+                parsed = JSON.parse(jsonMatch[1].trim());
+            } else {
+                const objMatch = text.match(/\{[\s\S]*\}/);
+                if (objMatch) {
+                    parsed = JSON.parse(objMatch[0]);
+                } else {
+                    return res.status(422).json({ success: false, message: 'Could not extract health data from this file. Try a different format.' });
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Health data extracted successfully',
+            data: {
+                symptoms: parsed.symptoms || [],
+                vitals: parsed.vitals || {},
+                conditions: parsed.conditions || [],
+                medications: parsed.medications || [],
+                summary: parsed.summary || 'Data extracted from uploaded file',
+            },
+        });
+    } catch (error) {
+        // Clean up temp file on error
+        if (req.file?.path) {
+            try { fs.unlinkSync(req.file.path); } catch { }
+        }
+        console.error('Parse health file error:', error.message);
+        next(error);
+    }
+};
+
+module.exports = { analyzeSession, getRecommendation, parseHealthFile };
