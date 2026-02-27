@@ -1,3 +1,1151 @@
 {
-    "symptom_clusters": []
+    "version": "1.0.0",
+    "last_updated": "2026-02-27",
+    "source": "Based on Manchester Triage System (MTS), Emergency Severity Index (ESI v4), WHO Emergency Care guidelines, and ICD-10-CM clinical definitions.",
+    "total_clusters": 22,
+    "symptom_clusters": [
+        {
+            "id": "cardiac_acute",
+            "icd_10_category": "I21-I22",
+            "presentation_summary": "Patient presents with crushing or pressure-like chest pain radiating to the left arm or jaw, accompanied by diaphoresis and shortness of breath.",
+            "tags": [
+                "chest_pain",
+                "chest_pressure",
+                "sweating",
+                "left_arm_numbness",
+                "jaw_pain",
+                "nausea",
+                "palpitations"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "High probability of acute cardiac event (STEMI/NSTEMI). Symptom triad of chest pain, diaphoresis, and referred arm/jaw pain is classic MI presentation. Time-to-reperfusion is the primary determinant of myocardial salvage — every minute delays increases infarct size.",
+            "vital_flags": {
+                "bp_systolic_gt": 140,
+                "bp_systolic_lt": 90,
+                "spo2_lt": 95,
+                "hr_gt": 100,
+                "hr_lt": 50
+            },
+            "next_actions": [
+                "Administer 12-lead ECG immediately (within 10 minutes of arrival)",
+                "Activate cath lab / call cardiologist on duty if STEMI confirmed",
+                "Administer Aspirin 300mg PO if not contraindicated",
+                "Establish IV access — draw troponin, CBC, BMP, coagulation panel",
+                "Continuous cardiac monitoring + pulse oximetry",
+                "Prepare for possible primary PCI or thrombolysis"
+            ],
+            "contraindications": [
+                "Do NOT administer Nitroglycerin if systolic BP < 90 mmHg",
+                "Do NOT administer Nitroglycerin if patient has taken phosphodiesterase inhibitors (sildenafil/tadalafil) within 24-48 hours",
+                "Avoid Aspirin if known hypersensitivity or active GI bleed"
+            ],
+            "risk_amplifiers": [
+                "diabetes",
+                "hypertension",
+                "smoking",
+                "obesity",
+                "family_history_cardiac",
+                "hyperlipidemia",
+                "previous_mi",
+                "male_over_45",
+                "female_over_55"
+            ],
+            "differential_diagnoses": [
+                "respiratory_distress_acute",
+                "aortic_dissection",
+                "pulmonary_embolism",
+                "severe_gerd",
+                "musculoskeletal_chest_pain"
+            ]
+        },
+        {
+            "id": "respiratory_distress_acute",
+            "icd_10_category": "J80, J96.0, J45.51",
+            "presentation_summary": "Patient presents with acute shortness of breath, audible wheezing, inability to speak in full sentences, accessory muscle use, and possible cyanosis.",
+            "tags": [
+                "shortness_of_breath",
+                "dyspnea",
+                "wheezing",
+                "cyanosis",
+                "chest_tightness",
+                "cannot_speak_full_sentence",
+                "gasping"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "Acute respiratory compromise with hypoxia risk. Causes include severe asthma exacerbation, COPD exacerbation, pulmonary embolism, tension pneumothorax, or acute pulmonary oedema. Silent chest in an asthmatic is an ominous sign — indicates airways too constricted to generate wheeze.",
+            "vital_flags": {
+                "spo2_lt": 92,
+                "rr_gt": 25,
+                "hr_gt": 120
+            },
+            "next_actions": [
+                "Apply high-flow oxygen (15L via non-rebreather mask) immediately",
+                "Nebulised salbutamol (2.5-5mg) + ipratropium bromide (0.5mg)",
+                "IV/IM corticosteroids (hydrocortisone 200mg or methylprednisolone 125mg)",
+                "Obtain arterial blood gas (ABG) urgently",
+                "Prepare for possible BiPAP/intubation if no improvement in 15-20 min",
+                "Call senior physician / anaesthetics team"
+            ],
+            "contraindications": [
+                "Avoid high-flow oxygen in known COPD patients — target SpO2 88-92% to prevent hypercapnia suppression",
+                "Do not use IV beta-blockers — may worsen bronchospasm"
+            ],
+            "risk_amplifiers": [
+                "asthma",
+                "copd",
+                "smoking",
+                "heart_failure",
+                "recent_upper_respiratory_infection",
+                "occupational_dust_exposure"
+            ],
+            "differential_diagnoses": [
+                "cardiac_acute",
+                "anaphylaxis_severe",
+                "pulmonary_embolism",
+                "foreign_body_airway"
+            ]
+        },
+        {
+            "id": "stroke_tia",
+            "icd_10_category": "I63, G45",
+            "presentation_summary": "Patient presents with sudden unilateral facial droop, arm weakness, slurred or absent speech — classic FAST triad. May include sudden severe headache ('thunderclap') or visual loss.",
+            "tags": [
+                "facial_droop",
+                "arm_weakness",
+                "slurred_speech",
+                "sudden_headache",
+                "vision_loss",
+                "confusion",
+                "loss_of_balance",
+                "dizziness"
+            ],
+            "match_threshold": 1,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "Time-critical neurological emergency. Ischaemic stroke: 'time is brain' — approximately 1.9 million neurones die per minute without treatment. IV tPA must be administered within 4.5 hours of symptom onset. Haemorrhagic stroke requires urgent neurosurgical consultation. TIA is a harbinger of imminent stroke — treat as emergency.",
+            "vital_flags": {
+                "bp_systolic_gt": 185,
+                "bp_diastolic_gt": 110
+            },
+            "next_actions": [
+                "Activate stroke code / call neurology team immediately",
+                "Non-contrast CT head STAT (within 25 minutes of arrival)",
+                "Note exact time of symptom onset — critical for thrombolysis eligibility",
+                "Establish IV access — glucose, CBC, coagulation, type and screen",
+                "Do NOT lower blood pressure unless > 220/120 or haemorrhage confirmed",
+                "NPO (nil by mouth) until swallow assessment completed"
+            ],
+            "contraindications": [
+                "Do NOT administer Aspirin until haemorrhagic stroke is excluded by CT",
+                "Do NOT aggressively lower BP in ischaemic stroke — permissive hypertension is required"
+            ],
+            "risk_amplifiers": [
+                "atrial_fibrillation",
+                "hypertension",
+                "diabetes",
+                "smoking",
+                "hyperlipidemia",
+                "previous_stroke_or_tia",
+                "carotid_stenosis",
+                "age_over_65"
+            ],
+            "differential_diagnoses": [
+                "hypoglycaemia",
+                "complex_migraine",
+                "seizure_postictal",
+                "brain_tumour",
+                "cardiac_acute"
+            ]
+        },
+        {
+            "id": "anaphylaxis_severe",
+            "icd_10_category": "T78.2",
+            "presentation_summary": "Patient presents with sudden onset urticaria, throat swelling/stridor, hypotension, and bronchospasm following exposure to an allergen (food, drug, insect sting).",
+            "tags": [
+                "hives",
+                "throat_swelling",
+                "stridor",
+                "difficulty_swallowing",
+                "sudden_rash",
+                "bp_drop",
+                "swollen_lips",
+                "swollen_face",
+                "anaphylaxis"
+            ],
+            "match_threshold": 1,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "Life-threatening systemic hypersensitivity reaction. Airway compromise and cardiovascular collapse can occur within minutes. Epinephrine is the only definitive first-line treatment — antihistamines and steroids are adjuncts, NOT substitutes. Biphasic anaphylaxis can occur 1-72 hours after initial episode.",
+            "vital_flags": {
+                "bp_systolic_lt": 90,
+                "hr_gt": 120,
+                "spo2_lt": 94
+            },
+            "next_actions": [
+                "Administer Epinephrine (adrenaline) 0.5mg IM (1:1000) in the anterolateral thigh — FIRST LINE",
+                "Call for resuscitation team / senior physician immediately",
+                "Position patient supine with legs raised (unless respiratory distress — sit upright)",
+                "High-flow oxygen via non-rebreather mask",
+                "IV access — 500-1000mL rapid IV fluid bolus (crystalloid) if hypotension",
+                "Chlorphenamine 10mg IV + Hydrocortisone 200mg IV (after epinephrine)",
+                "Admit for minimum 6-hour observation (biphasic risk)"
+            ],
+            "contraindications": [
+                "Do NOT delay Epinephrine to administer antihistamines first",
+                "Do NOT use oral antihistamines as sole treatment for anaphylaxis"
+            ],
+            "risk_amplifiers": [
+                "known_allergies",
+                "previous_anaphylaxis",
+                "asthma",
+                "mastocytosis",
+                "beta_blocker_use"
+            ],
+            "differential_diagnoses": [
+                "respiratory_distress_acute",
+                "vasovagal_syncope",
+                "panic_attack",
+                "hereditary_angioedema"
+            ]
+        },
+        {
+            "id": "septic_shock",
+            "icd_10_category": "A41.9, R65.21",
+            "presentation_summary": "Patient presents with fever or hypothermia, altered mental status, tachycardia, and hypotension unresponsive to initial fluid resuscitation, with suspected infection source.",
+            "tags": [
+                "fever",
+                "confusion",
+                "low_blood_pressure",
+                "rapid_heart_rate",
+                "chills",
+                "rigors",
+                "altered_consciousness",
+                "cold_clammy_skin"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "Septic shock is life-organ threatening. Defined as sepsis with persisting hypotension (MAP < 65 mmHg) despite adequate fluid resuscitation, requiring vasopressors. Lactate > 2 mmol/L suggests tissue hypoperfusion. Mortality increases ~8% per hour without antibiotics. Follow Surviving Sepsis Campaign Hour-1 Bundle.",
+            "vital_flags": {
+                "bp_systolic_lt": 90,
+                "hr_gt": 100,
+                "rr_gt": 22,
+                "temp_gt": 38.3
+            },
+            "next_actions": [
+                "Draw blood cultures x2 sets BEFORE administering antibiotics",
+                "Administer broad-spectrum IV antibiotics within 1 hour (e.g. Piperacillin-Tazobactam + Vancomycin)",
+                "IV fluid resuscitation: 30mL/kg crystalloid within 3 hours",
+                "Check serum lactate — if > 4 mmol/L, immediate ICU alert",
+                "Insert urinary catheter — target urine output > 0.5 mL/kg/hr",
+                "Start vasopressors (Norepinephrine) if MAP < 65 despite fluids",
+                "Alert ICU / senior physician immediately"
+            ],
+            "contraindications": [
+                "Avoid hypotonic IV fluids (D5W) for resuscitation",
+                "Avoid corticosteroids unless refractory shock to vasopressors"
+            ],
+            "risk_amplifiers": [
+                "immunosuppression",
+                "diabetes",
+                "chronic_kidney_disease",
+                "recent_surgery",
+                "malignancy",
+                "age_over_65",
+                "indwelling_catheters"
+            ],
+            "differential_diagnoses": [
+                "cardiac_acute",
+                "hypovolaemic_shock",
+                "adrenal_crisis",
+                "toxic_shock_syndrome"
+            ]
+        },
+        {
+            "id": "hypertensive_emergency",
+            "icd_10_category": "I16.1",
+            "presentation_summary": "Patient presents with severely elevated blood pressure (typically > 180/120 mmHg) with evidence of acute end-organ damage: confusion, visual changes, chest pain, or pulmonary oedema.",
+            "tags": [
+                "severe_headache",
+                "blurred_vision",
+                "confusion",
+                "nosebleed",
+                "chest_pain",
+                "palpitations",
+                "shortness_of_breath"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "Hypertensive emergency (vs urgency) requires evidence of acute target organ damage. Organs at risk: brain (hypertensive encephalopathy, stroke), heart (ACS, aortic dissection), kidneys (acute kidney injury), eyes (papilloedema). Goal is controlled BP reduction — usually 10-20% within first hour, not to normal.",
+            "vital_flags": {
+                "bp_systolic_gt": 180,
+                "bp_diastolic_gt": 120
+            },
+            "next_actions": [
+                "Continuous BP monitoring (every 5-15 minutes initially)",
+                "IV antihypertensive therapy (Labetalol, Nicardipine, or Clevidipine)",
+                "ECG, chest X-ray, head CT if neurological symptoms",
+                "Renal function panel (creatinine, BUN) + urinalysis",
+                "Ophthalmology review if visual symptoms (fundoscopy for papilloedema)",
+                "Cardiac monitoring and IV access"
+            ],
+            "contraindications": [
+                "Do NOT lower BP too rapidly — risk of cerebral or coronary ischaemia",
+                "Avoid sublingual Nifedipine — unpredictable rapid BP drop can be dangerous",
+                "Avoid ACE inhibitors in bilateral renal artery stenosis"
+            ],
+            "risk_amplifiers": [
+                "known_hypertension",
+                "non_compliance_with_medication",
+                "renal_disease",
+                "pheochromocytoma",
+                "pregnancy_eclampsia",
+                "cocaine_use"
+            ],
+            "differential_diagnoses": [
+                "stroke_tia",
+                "cardiac_acute",
+                "aortic_dissection",
+                "pre_eclampsia"
+            ]
+        },
+        {
+            "id": "high_fever_infection",
+            "icd_10_category": "R50.9, A41.9",
+            "presentation_summary": "Patient presents with high fever (> 38.5°C), chills/rigors, focal infection signs (e.g. productive cough, dysuria, neck stiffness), and possible confusion in elderly patients.",
+            "tags": [
+                "fever",
+                "high_temperature",
+                "chills",
+                "rigors",
+                "sweating",
+                "body_ache",
+                "confusion",
+                "lethargy"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 2,
+            "urgency_label": "URGENT",
+            "color": "orange",
+            "clinical_context": "High fever with rigors suggests bacteraemia. In elderly patients, confusion may be the only presenting symptom of serious infection. Fever > 40°C risks febrile seizures in children. Neck stiffness + photophobia = meningism until proven otherwise — requires immediate LP consideration.",
+            "vital_flags": {
+                "temp_gt": 38.5,
+                "hr_gt": 100,
+                "bp_systolic_lt": 100,
+                "rr_gt": 20
+            },
+            "next_actions": [
+                "Full sepsis screen: Blood cultures x2, FBC, CRP, procalcitonin, LFTs, U&E",
+                "Urinalysis + MSU culture",
+                "Chest X-ray if respiratory symptoms",
+                "Paracetamol/Ibuprofen for fever management",
+                "IV fluids if signs of dehydration or haemodynamic compromise",
+                "Assess for meningism — if suspected, CT head then LP",
+                "Empirical antibiotics if source identified or sepsis suspected"
+            ],
+            "contraindications": [
+                "Avoid NSAIDs if renal impairment or history of GI bleed",
+                "Do NOT prescribe antibiotics without cultures if clinically stable — allows targeted therapy"
+            ],
+            "risk_amplifiers": [
+                "immunosuppression",
+                "diabetes",
+                "age_over_65",
+                "age_under_2",
+                "recent_travel",
+                "asplenia",
+                "indwelling_devices"
+            ],
+            "differential_diagnoses": [
+                "septic_shock",
+                "malaria",
+                "covid19",
+                "lymphoma",
+                "drug_fever"
+            ]
+        },
+        {
+            "id": "moderate_trauma",
+            "icd_10_category": "S09, S72, T14",
+            "presentation_summary": "Patient presents following injury with suspected fractures, significant soft-tissue injury, brief loss of consciousness (< 5 minutes), or blunt abdominal trauma.",
+            "tags": [
+                "head_injury",
+                "fall",
+                "fracture",
+                "road_accident",
+                "blunt_trauma",
+                "loss_of_consciousness",
+                "bruising",
+                "swelling",
+                "abdominal_trauma"
+            ],
+            "match_threshold": 1,
+            "urgency_level": 2,
+            "urgency_label": "URGENT",
+            "color": "orange",
+            "clinical_context": "Moderate trauma requires systematic assessment using ATLS (Advanced Trauma Life Support) principles. Occult injuries (splenic or hepatic laceration, pneumothorax) may be missed without imaging. Any head trauma with brief LOC, post-traumatic amnesia, or vomiting warrants CT head.",
+            "vital_flags": {
+                "bp_systolic_lt": 100,
+                "hr_gt": 110,
+                "spo2_lt": 95
+            },
+            "next_actions": [
+                "Cervical spine immobilisation if mechanism suggests spinal injury",
+                "Primary survey: Airway, Breathing, Circulation (ABCDE)",
+                "CT head if LOC, amnesia, GCS < 15, or significant mechanism",
+                "X-rays of suspected fracture sites",
+                "IV access + FBC, group and screen (if bleeding suspected)",
+                "Pain management with IV/IM analgesia",
+                "Tetanus prophylaxis if open wound"
+            ],
+            "contraindications": [
+                "Do NOT move patient without cervical spine clearance if high-velocity trauma",
+                "Avoid NSAIDs if internal bleeding suspected"
+            ],
+            "risk_amplifiers": [
+                "anticoagulant_therapy",
+                "age_over_65",
+                "osteoporosis",
+                "alcohol_intoxication",
+                "coagulopathy"
+            ],
+            "differential_diagnoses": [
+                "traumatic_brain_injury_severe",
+                "internal_haemorrhage",
+                "pneumothorax",
+                "spinal_cord_injury"
+            ]
+        },
+        {
+            "id": "acute_abdomen_urgent",
+            "icd_10_category": "K35, K57, K56",
+            "presentation_summary": "Patient presents with acute localised abdominal pain — particularly right iliac fossa (appendicitis), periumbilical, or generalised with guarding and rigidity suggesting peritonitis.",
+            "tags": [
+                "abdominal_pain",
+                "right_lower_pain",
+                "nausea",
+                "vomiting",
+                "fever",
+                "rigid_abdomen",
+                "guarding",
+                "rebound_tenderness",
+                "bloating"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 2,
+            "urgency_label": "URGENT",
+            "color": "orange",
+            "clinical_context": "Acute abdomen may represent surgical emergency: appendicitis (perforation risk within 24-72 hours), bowel obstruction, mesenteric ischaemia, or perforated viscus. Peritonism indicates contamination of the peritoneum and potential sepsis. Never give analgesia before surgical assessment in classical teaching — this is now outdated; adequate analgesia does not mask signs.",
+            "vital_flags": {
+                "temp_gt": 38.0,
+                "hr_gt": 100,
+                "bp_systolic_lt": 100
+            },
+            "next_actions": [
+                "Surgical team review — assess for peritonism (rebound tenderness, guarding)",
+                "FBC, CRP, LFTs, amylase/lipase, U&E, group and screen",
+                "CT abdomen/pelvis with contrast (gold standard for acute abdomen)",
+                "Erect CXR (to exclude free air under diaphragm)",
+                "IV fluid resuscitation if dehydrated/haemodynamically compromised",
+                "IV analgesia (Morphine + Ondansetron for nausea)",
+                "NPO — prepare for possible emergency surgery"
+            ],
+            "contraindications": [
+                "Do NOT give oral fluids or food if surgical intervention is planned",
+                "Avoid morphine if allergy — use fentanyl or hydromorphone"
+            ],
+            "risk_amplifiers": [
+                "previous_abdominal_surgery",
+                "hernia",
+                "diabetes",
+                "ibd",
+                "immunosuppression",
+                "age_over_65"
+            ],
+            "differential_diagnoses": [
+                "cardiac_acute",
+                "renal_colic",
+                "ovarian_torsion",
+                "ectopic_pregnancy",
+                "mesenteric_ischaemia"
+            ]
+        },
+        {
+            "id": "diabetic_emergency",
+            "icd_10_category": "E11.00, E11.10, E10.641",
+            "presentation_summary": "Patient presents with altered consciousness, diaphoresis, and tremors (hypoglycaemia) — or polyuria, polydipsia, vomiting, and fruity breath (DKA). Blood glucose is the key differentiator.",
+            "tags": [
+                "confusion",
+                "tremors",
+                "sweating",
+                "unconsciousness",
+                "polyuria",
+                "extreme_thirst",
+                "vomiting",
+                "fruity_breath",
+                "weakness"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 2,
+            "urgency_label": "URGENT",
+            "color": "orange",
+            "clinical_context": "Two distinct emergencies: (1) Hypoglycaemia (glucose < 3.5 mmol/L) — rapid deterioration to seizures and coma, easily reversed but dangerous if missed. (2) Diabetic Ketoacidosis (DKA — glucose > 11 mmol/L + ketones > 3 mmol/L + acidosis pH < 7.3) — requires structured IV fluid and insulin protocol. DKA can be first presentation of Type 1 DM.",
+            "vital_flags": {
+                "hr_gt": 110,
+                "bp_systolic_lt": 90,
+                "rr_gt": 22
+            },
+            "next_actions": [
+                "Capillary blood glucose IMMEDIATELY (point-of-care)",
+                "If glucose < 3.5 mmol/L: oral glucose gel if conscious, or IV 50% dextrose if not",
+                "If DKA suspected: VBG (pH, bicarb, ketones), urinalysis (ketones)",
+                "IV access — FBC, U&E, glucose, ketones, blood cultures",
+                "IV fluids: 0.9% NaCl 1L over 1 hour for DKA",
+                "Fixed-rate insulin infusion (0.1 units/kg/hr) once potassium confirmed > 3.5",
+                "Hourly monitoring of glucose, ketones, electrolytes"
+            ],
+            "contraindications": [
+                "Do NOT start insulin in DKA if potassium < 3.5 mmol/L — risk of lethal hypokalaemia",
+                "Do NOT give oral glucose to unconscious patient — aspiration risk"
+            ],
+            "risk_amplifiers": [
+                "type1_diabetes",
+                "type2_diabetes",
+                "infection_trigger",
+                "alcohol_use",
+                "missed_insulin_doses",
+                "corticosteroid_use"
+            ],
+            "differential_diagnoses": [
+                "stroke_tia",
+                "septic_shock",
+                "alcohol_intoxication",
+                "adrenal_crisis"
+            ]
+        },
+        {
+            "id": "cardiac_arrhythmia",
+            "icd_10_category": "I48, I47, I49",
+            "presentation_summary": "Patient presents with palpitations, irregular heartbeat, syncope or near-syncope, and possible chest discomfort — particularly if haemodynamically unstable.",
+            "tags": [
+                "palpitations",
+                "irregular_heartbeat",
+                "syncope",
+                "fainting",
+                "dizziness",
+                "chest_discomfort",
+                "lightheadedness"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 2,
+            "urgency_label": "URGENT",
+            "color": "orange",
+            "clinical_context": "Haemodynamically significant arrhythmias (AF with RVR, SVT, VT, heart block) require urgent evaluation. Syncope with palpitations suggests a cardiac cause. Key question: is the patient haemodynamically stable? Unstable (BP < 90, altered consciousness, chest pain) = immediate DC cardioversion. AF management depends on duration of onset (< 48hr vs > 48hr) due to thrombus risk.",
+            "vital_flags": {
+                "hr_gt": 150,
+                "hr_lt": 40,
+                "bp_systolic_lt": 90,
+                "spo2_lt": 94
+            },
+            "next_actions": [
+                "12-lead ECG immediately and rhythm strip",
+                "Cardiac monitoring — continuous pulse oximetry",
+                "If unstable: prepare for synchronised DC cardioversion",
+                "If stable AF < 48 hrs: rate control (Metoprolol IV or Digoxin)",
+                "If stable SVT: Vagal manoeuvres, then Adenosine 6mg IV rapid push",
+                "U&E (check potassium + magnesium), TFTs, FBC",
+                "Echocardiogram if structural heart disease suspected"
+            ],
+            "contraindications": [
+                "Do NOT use Adenosine in Wolff-Parkinson-White (WPW) — may precipitate VF",
+                "Avoid Verapamil in SVT if pre-excited QRS — can cause VF",
+                "Do NOT cardiovert AF > 48 hours duration without anticoagulation or TOE clearance — stroke risk"
+            ],
+            "risk_amplifiers": [
+                "structural_heart_disease",
+                "thyrotoxicosis",
+                "electrolyte_imbalance",
+                "alcohol_use",
+                "caffeine_excess",
+                "stimulant_drugs"
+            ],
+            "differential_diagnoses": [
+                "cardiac_acute",
+                "pulmonary_embolism",
+                "panic_attack",
+                "anaemia",
+                "hyperthyroidism"
+            ]
+        },
+        {
+            "id": "mental_health_crisis",
+            "icd_10_category": "F32, F41, F23",
+            "presentation_summary": "Patient presents with suicidal ideation, self-harm, acute psychosis (hallucinations/delusions), severe agitation, or inability to maintain personal safety.",
+            "tags": [
+                "suicidal_ideation",
+                "self_harm",
+                "hallucinations",
+                "delusions",
+                "severe_anxiety",
+                "psychosis",
+                "agitation",
+                "aggressive_behaviour"
+            ],
+            "match_threshold": 1,
+            "urgency_level": 2,
+            "urgency_label": "URGENT",
+            "color": "orange",
+            "clinical_context": "Mental health crises can be life-threatening. Active suicidal ideation with a plan and means available is a psychiatric emergency. Acute psychosis may indicate first episode schizophrenia, drug-induced psychosis, organic cause (encephalitis, metabolic), or acute mania. Always exclude organic causes (hypoglycaemia, head injury, intoxication) before attributing to psychiatric cause.",
+            "vital_flags": {
+                "hr_gt": 130,
+                "temp_gt": 38.5
+            },
+            "next_actions": [
+                "Ensure patient and staff safety — de-escalation as first approach",
+                "Risk assessment: suicidal intent, plan, means, protective factors",
+                "Psychiatric team referral / crisis team notification",
+                "Medical exclusion: glucose, TFTs, FBC, U&E, drug screen, CT head if warranted",
+                "Oral benzodiazepine if severe agitation (Lorazepam 1-2mg PO)",
+                "IM sedation if rapid tranquilisation needed (Olanzapine 10mg IM or Haloperidol 5mg IM)",
+                "Do NOT leave patient unattended — 1:1 observation"
+            ],
+            "contraindications": [
+                "Avoid IM Olanzapine within 1 hour of IM Lorazepam — risk of respiratory depression",
+                "Do NOT restrain physically without clinical justification and documentation"
+            ],
+            "risk_amplifiers": [
+                "previous_suicide_attempts",
+                "substance_abuse",
+                "depression",
+                "bipolar_disorder",
+                "recent_loss",
+                "social_isolation",
+                "male_gender"
+            ],
+            "differential_diagnoses": [
+                "organic_psychosis",
+                "encephalitis",
+                "substance_intoxication",
+                "serotonin_syndrome",
+                "dementia_delirium"
+            ]
+        },
+        {
+            "id": "pulmonary_embolism",
+            "icd_10_category": "I26",
+            "presentation_summary": "Patient presents with sudden onset dyspnoea, pleuritic chest pain, and tachycardia — often following immobilisation, recent surgery, or DVT.",
+            "tags": [
+                "shortness_of_breath",
+                "chest_pain",
+                "rapid_heart_rate",
+                "leg_swelling",
+                "haemoptysis",
+                "syncope",
+                "recent_surgery",
+                "immobilisation"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 1,
+            "urgency_label": "CRITICAL",
+            "color": "red",
+            "clinical_context": "Pulmonary embolism is a potentially fatal obstruction of the pulmonary arterial system. Massive PE (haemodynamic instability) requires immediate systemic thrombolysis unless contraindicated. Use Wells PE Score to estimate pre-test probability. D-dimer is only useful if pre-test probability is low — do not use to exclude PE in high-probability cases. CT Pulmonary Angiography (CTPA) is gold standard.",
+            "vital_flags": {
+                "hr_gt": 100,
+                "spo2_lt": 94,
+                "bp_systolic_lt": 90,
+                "rr_gt": 20
+            },
+            "next_actions": [
+                "High-flow oxygen and continuous monitoring",
+                "Calculate Wells PE Score — if high probability, proceed to CTPA immediately",
+                "If haemodynamically unstable: systemic thrombolysis (Alteplase 100mg IV over 2hrs) or surgical embolectomy",
+                "CTPA (CT Pulmonary Angiography) — gold standard imaging",
+                "D-dimer only if low pre-test probability Wells score",
+                "Anticoagulation: LMWH/UFH once PE confirmed (or high suspicion with no haemorrhage risk)",
+                "ICU admission for massive PE"
+            ],
+            "contraindications": [
+                "Avoid thrombolysis if recent surgery, stroke, or active internal bleeding",
+                "Do NOT rely on D-dimer alone to exclude PE in high-probability patients"
+            ],
+            "risk_amplifiers": [
+                "recent_surgery",
+                "immobilisation",
+                "malignancy",
+                "pregnancy",
+                "ocp_use",
+                "previous_dvt_pe",
+                "thrombophilia",
+                "long_haul_flight"
+            ],
+            "differential_diagnoses": [
+                "cardiac_acute",
+                "respiratory_distress_acute",
+                "pneumonia",
+                "pneumothorax",
+                "pleuritis"
+            ]
+        },
+        {
+            "id": "abdominal_pain_moderate",
+            "icd_10_category": "K59, K30, N23",
+            "presentation_summary": "Patient presents with diffuse or colicky abdominal pain without signs of peritonism, associated with nausea, vomiting, or changes in bowel habit.",
+            "tags": [
+                "abdominal_pain",
+                "cramps",
+                "nausea",
+                "vomiting",
+                "diarrhoea",
+                "constipation",
+                "bloating",
+                "flank_pain"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 3,
+            "urgency_label": "MODERATE",
+            "color": "yellow",
+            "clinical_context": "Moderate abdominal pain requires location-based assessment: RUQ = biliary/hepatic; LUQ = splenic/gastric; RIF = appendicitis/ovarian; LIF = diverticulitis; flank = renal colic; periumbilical = early appendicitis/mesenteric. No peritonism signs and haemodynamically stable = MODERATE urgency. Beware of atypical presentations in elderly and diabetic patients.",
+            "vital_flags": {
+                "temp_gt": 37.8,
+                "hr_gt": 100
+            },
+            "next_actions": [
+                "Abdominal examination: location, character, radiation, guarding, bowel sounds",
+                "FBC, CRP, U&E, LFTs, amylase if epigastric pain",
+                "Urine pregnancy test in all females of reproductive age",
+                "Urinalysis (exclude UTI/renal colic)",
+                "Ultrasound abdomen (first line for RUQ pain, pelvic pain)",
+                "IV/PO analgesia as appropriate",
+                "Dietary advice and early review"
+            ],
+            "contraindications": [
+                "Do NOT use NSAIDs if peptic ulcer history or suspected renal colic without adequate hydration"
+            ],
+            "risk_amplifiers": [
+                "cholelithiasis",
+                "previous_abdominal_surgery",
+                "ibs",
+                "female_reproductive_age",
+                "alcohol_use"
+            ],
+            "differential_diagnoses": [
+                "acute_abdomen_urgent",
+                "renal_colic",
+                "ectopic_pregnancy",
+                "ovarian_cyst",
+                "peptic_ulcer"
+            ]
+        },
+        {
+            "id": "urinary_tract_infection_complicated",
+            "icd_10_category": "N10, N39.0",
+            "presentation_summary": "Patient presents with dysuria, frequency, and urgency (lower UTI) — or fever, rigors, and flank pain suggesting pyelonephritis (upper UTI).",
+            "tags": [
+                "dysuria",
+                "frequent_urination",
+                "flank_pain",
+                "fever",
+                "urgency",
+                "cloudy_urine",
+                "burning_urination",
+                "back_pain"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 3,
+            "urgency_label": "MODERATE",
+            "color": "yellow",
+            "clinical_context": "Pyelonephritis (upper UTI with flank pain, fever, rigors) requires IV antibiotics and admission if severe. Simple lower UTI in young healthy females can be treated with oral antibiotics in community. Complicated UTI features: male sex, pregnancy, catheterised, structural urinary abnormality, immunosuppression, or failure of prior treatment.",
+            "vital_flags": {
+                "temp_gt": 38.0,
+                "hr_gt": 100
+            },
+            "next_actions": [
+                "Urinalysis + MSU for culture and sensitivity before antibiotics",
+                "Blood cultures if fever/systemic sepsis features present",
+                "U&E (renal function) + FBC + CRP",
+                "Ultrasound kidneys if obstruction suspected or no improvement",
+                "IV antibiotics for pyelonephritis (Ceftriaxone 1-2g IV)",
+                "Oral antibiotics for simple lower UTI (Trimethoprim / Nitrofurantoin)",
+                "Adequate IV/PO hydration"
+            ],
+            "contraindications": [
+                "Avoid Nitrofurantoin if eGFR < 45 (ineffective and risk of pulmonary toxicity)",
+                "Avoid Trimethoprim in pregnancy (folate antagonism in first trimester)"
+            ],
+            "risk_amplifiers": [
+                "female_sex",
+                "sexual_activity",
+                "pregnancy",
+                "diabetes",
+                "catheterised",
+                "renal_stones",
+                "immunosuppression"
+            ],
+            "differential_diagnoses": [
+                "renal_colic",
+                "pelvic_inflammatory_disease",
+                "appendicitis",
+                "septic_shock"
+            ]
+        },
+        {
+            "id": "musculoskeletal_injury_moderate",
+            "icd_10_category": "M79, S60-S69",
+            "presentation_summary": "Patient presents with localised joint or limb pain, swelling, restricted movement, and possible bruising following trauma or overuse.",
+            "tags": [
+                "joint_pain",
+                "swelling",
+                "sprain",
+                "muscle_pain",
+                "restricted_movement",
+                "bruising",
+                "limb_pain",
+                "back_pain"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 3,
+            "urgency_label": "MODERATE",
+            "color": "yellow",
+            "clinical_context": "Musculoskeletal injuries are common and rarely immediately life-threatening. Key distinction: fracture vs sprain vs tendon injury. Ottawa rules guide X-ray decisions for ankle and knee injuries. Compartment syndrome is a rare but limb-threatening complication of severe closed injuries — suspect if pain out of proportion, pallor, paraesthesia, paralysis.",
+            "vital_flags": {},
+            "next_actions": [
+                "Clinical assessment: neurovascular status distal to injury (pulse, sensation, movement)",
+                "Apply Ottawa Rules to determine need for X-ray",
+                "X-ray of affected area if fracture suspected",
+                "RICE: Rest, Ice, Compression, Elevation",
+                "Oral analgesia: Paracetamol + Ibuprofen (if no contraindications)",
+                "Immobilisation (splint/cast) if fracture confirmed",
+                "Orthopaedic referral for complex fractures or compartment syndrome suspicion"
+            ],
+            "contraindications": [
+                "Do NOT splint in circumferential plaster if acute swelling — risk of compartment syndrome",
+                "Avoid weight-bearing until fracture excluded"
+            ],
+            "risk_amplifiers": [
+                "osteoporosis",
+                "anticoagulant_therapy",
+                "elderly",
+                "high_impact_sport",
+                "steroid_use"
+            ],
+            "differential_diagnoses": [
+                "fracture",
+                "septic_arthritis",
+                "dvt",
+                "compartment_syndrome",
+                "osteomyelitis"
+            ]
+        },
+        {
+            "id": "upper_respiratory_infection",
+            "icd_10_category": "J06.9, J02, J00",
+            "presentation_summary": "Patient presents with sore throat, runny nose, mild cough, low-grade fever, and general malaise consistent with viral upper respiratory tract infection.",
+            "tags": [
+                "sore_throat",
+                "runny_nose",
+                "cough",
+                "sneezing",
+                "mild_fever",
+                "hoarseness",
+                "congestion",
+                "mild_headache"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 4,
+            "urgency_label": "LOW",
+            "color": "green",
+            "clinical_context": "Vast majority are viral (rhinovirus, adenovirus, influenza) and self-limiting within 7-10 days. Antibiotics are NOT indicated for viral URTI. Centor/McIsaac criteria help identify bacterial pharyngitis (Streptococcal) warranting antibiotics: fever, exudate, tender LAP, no cough (3-4 = treat empirically or swab). Complications: sinusitis, otitis media, peritonsillar abscess.",
+            "vital_flags": {
+                "temp_gt": 38.5,
+                "spo2_lt": 95
+            },
+            "next_actions": [
+                "Assess Centor/McIsaac Score for bacterial pharyngitis",
+                "Throat swab for culture if Centor score 3-4",
+                "Supportive management: rest, hydration, paracetamol/ibuprofen",
+                "Antibiotics ONLY if bacterial source confirmed (Phenoxymethylpenicillin for strep)",
+                "Educate on self-care and return precautions (worsening, difficulty breathing, drooling)",
+                "Advise 48-72 hour watchful waiting before antibiotic consideration"
+            ],
+            "contraindications": [
+                "Do NOT prescribe antibiotics for viral URTI — antimicrobial stewardship",
+                "Avoid Aspirin in children under 16 — Reye syndrome risk"
+            ],
+            "risk_amplifiers": [
+                "immunosuppression",
+                "asthma",
+                "smoking",
+                "age_under_2",
+                "age_over_65",
+                "pregnancy"
+            ],
+            "differential_diagnoses": [
+                "influenza",
+                "covid19",
+                "infectious_mononucleosis",
+                "epiglottitis",
+                "peritonsillar_abscess"
+            ]
+        },
+        {
+            "id": "dehydration_moderate",
+            "icd_10_category": "E86.0",
+            "presentation_summary": "Patient presents with reduced urine output, dry mucous membranes, tachycardia, and fatigue following vomiting, diarrhoea, or inadequate fluid intake.",
+            "tags": [
+                "vomiting",
+                "diarrhoea",
+                "dry_mouth",
+                "thirst",
+                "fatigue",
+                "dizziness",
+                "reduced_urination",
+                "weakness"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 3,
+            "urgency_label": "MODERATE",
+            "color": "yellow",
+            "clinical_context": "Moderate dehydration (5-10% body weight fluid loss) presents with tachycardia, reduced skin turgor, dry mucous membranes. Severe dehydration (>10%) shows hypotension, altered consciousness, and requires IV resuscitation. Electrolyte imbalance (hyponatraemia, hypokalaemia) are common complications of vomiting/diarrhoea. Infants and elderly are most vulnerable.",
+            "vital_flags": {
+                "hr_gt": 100,
+                "bp_systolic_lt": 100
+            },
+            "next_actions": [
+                "Assess degree of dehydration (mild/moderate/severe)",
+                "U&E + glucose (electrolyte imbalance common with vomiting/diarrhoea)",
+                "Oral rehydration salts (ORS) if able to tolerate",
+                "IV fluids if severe dehydration or unable to tolerate PO (0.9% NaCl with KCl supplementation)",
+                "Anti-emetics (Ondansetron 4mg PO/IV) to enable oral hydration",
+                "Stool culture if infective diarrhoea suspected",
+                "Monitor urine output and electrolytes"
+            ],
+            "contraindications": [
+                "Avoid hypotonic fluids (D5W alone) in severe dehydration",
+                "Avoid anti-diarrhoeals (Loperamide) in bloody diarrhoea / infective colitis"
+            ],
+            "risk_amplifiers": [
+                "age_under_5",
+                "age_over_65",
+                "diabetes",
+                "diuretic_use",
+                "heat_exposure",
+                "alcohol_use"
+            ],
+            "differential_diagnoses": [
+                "diabetic_emergency",
+                "addisonian_crisis",
+                "septic_shock",
+                "bowel_obstruction"
+            ]
+        },
+        {
+            "id": "minor_skin_conditions",
+            "icd_10_category": "L50, L20, L23",
+            "presentation_summary": "Patient presents with localised rash, urticaria, mild contact dermatitis, or eczema flare — without systemic symptoms or airway involvement.",
+            "tags": [
+                "rash",
+                "itching",
+                "hives",
+                "eczema",
+                "redness",
+                "swelling_skin",
+                "blisters",
+                "allergic_reaction_mild"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 4,
+            "urgency_label": "LOW",
+            "color": "green",
+            "clinical_context": "Minor skin conditions are generally not life-threatening but cause significant discomfort. Key distinction: rule out anaphylaxis (no throat swelling, no hypotension, no bronchospasm). Simple urticaria without systemic features = LOW urgency. Contact dermatitis: identify and remove allergen. Target lesions suggest erythema multiforme — possible drug reaction.",
+            "vital_flags": {
+                "bp_systolic_lt": 90
+            },
+            "next_actions": [
+                "Confirm no airway involvement (throat inspection), no systemic symptoms",
+                "Identify potential trigger (contact, food, drug, insect)",
+                "Oral antihistamine (Cetirizine 10mg or Chlorphenamine 4mg) for urticaria",
+                "Topical corticosteroid (Hydrocortisone 1%) for localised eczema/contact dermatitis",
+                "Advise to return immediately if throat swelling, dyspnoea, or collapse",
+                "Refer to dermatology or allergy clinic if recurrent"
+            ],
+            "contraindications": [
+                "Do NOT prescribe systemic steroids for routine urticaria unless severe",
+                "Avoid sedating antihistamines in elderly — fall risk"
+            ],
+            "risk_amplifiers": [
+                "known_allergies",
+                "atopic_history",
+                "medication_changes",
+                "new_cosmetics_or_detergents"
+            ],
+            "differential_diagnoses": [
+                "anaphylaxis_severe",
+                "cellulitis",
+                "erythema_multiforme",
+                "vasculitis",
+                "chickenpox"
+            ]
+        },
+        {
+            "id": "low_back_pain",
+            "icd_10_category": "M54.5",
+            "presentation_summary": "Patient presents with lumbar back pain, typically after lifting or prolonged posture, without neurological deficits or red flag features.",
+            "tags": [
+                "back_pain",
+                "lower_back_pain",
+                "muscle_spasm",
+                "stiffness",
+                "difficulty_moving",
+                "lumbar_pain"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 4,
+            "urgency_label": "LOW",
+            "color": "green",
+            "clinical_context": "Non-specific low back pain is the most common musculoskeletal complaint. Vast majority resolve within 6 weeks. Screen for RED FLAGS: saddle anaesthesia, bowel/bladder dysfunction (cauda equina — emergency MRI), bilateral leg weakness, unexplained weight loss (malignancy), fever with back pain (spinal infection), age < 20 or > 50 with new onset (fracture/malignancy).",
+            "vital_flags": {
+                "temp_gt": 38.0
+            },
+            "next_actions": [
+                "Screen for red flags: saddle anaesthesia, bowel/bladder symptoms, bilateral limb weakness",
+                "Neurological examination: power, reflexes, sensation in legs",
+                "If no red flags: reassure, analgesia (Paracetamol + low-dose Ibuprofen)",
+                "Encourage gentle mobilisation — avoid prolonged bed rest",
+                "Physiotherapy referral for exercises",
+                "X-ray only if red flags present or trauma mechanism",
+                "MRI if cauda equina suspected — emergency"
+            ],
+            "contraindications": [
+                "Do NOT prescribe opioids as first-line for acute low back pain",
+                "Avoid prolonged bed rest — worsens outcomes"
+            ],
+            "risk_amplifiers": [
+                "manual_labour",
+                "obesity",
+                "smoking",
+                "sedentary_lifestyle",
+                "previous_back_surgery",
+                "osteoporosis"
+            ],
+            "differential_diagnoses": [
+                "cauda_equina_syndrome",
+                "aortic_aneurysm",
+                "spinal_infection",
+                "renal_colic",
+                "pelvic_pathology"
+            ]
+        },
+        {
+            "id": "anxiety_panic_attack",
+            "icd_10_category": "F41.0",
+            "presentation_summary": "Patient presents with sudden intense fear, palpitations, hyperventilation, chest tightness, and tingling — typically in a young adult with no prior cardiac history.",
+            "tags": [
+                "palpitations",
+                "hyperventilation",
+                "chest_tightness",
+                "tingling",
+                "numbness_hands",
+                "dizziness",
+                "fear_of_dying",
+                "sweating"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 5,
+            "urgency_label": "OBSERVATION",
+            "color": "blue",
+            "clinical_context": "Panic disorder is a diagnosis of exclusion — must rule out cardiac arrhythmia, pulmonary embolism, and hyperthyroidism first, especially in age > 40 or first episode. Hyperventilation causes hypocapnia → respiratory alkalosis → peripheral paraesthesia (tingling hands, perioral). These symptoms mimic serious pathology but are benign. Treatment: reassurance, controlled breathing, treat underlying anxiety.",
+            "vital_flags": {
+                "hr_gt": 130,
+                "spo2_lt": 94
+            },
+            "next_actions": [
+                "Rule out organic causes: 12-lead ECG, SpO2, blood glucose, capillary gas if hyperventilating",
+                "Blood tests: TFTs (thyrotoxicosis exclusion), FBC, U&E",
+                "Reassurance and calm explanation of symptoms",
+                "Controlled breathing technique: 4-7-8 or box breathing",
+                "Benzodiazepine (Lorazepam 1mg PO) only if first episode or severe distress — not for repeated use",
+                "Refer to psychology/CBT or psychiatry for recurrent panic disorder",
+                "Safety netting: advise to return if chest pain worsens, syncope, or new symptoms"
+            ],
+            "contraindications": [
+                "Do NOT prescribe benzodiazepines regularly — dependence risk",
+                "Do NOT dismiss without performing ECG in first episode, age > 35, or risk factors"
+            ],
+            "risk_amplifiers": [
+                "anxiety_disorder",
+                "depression",
+                "caffeine_excess",
+                "stimulant_use",
+                "hyperthyroidism",
+                "recent_life_stressor"
+            ],
+            "differential_diagnoses": [
+                "cardiac_arrhythmia",
+                "cardiac_acute",
+                "pulmonary_embolism",
+                "hyperthyroidism",
+                "hypoglycaemia"
+            ]
+        },
+        {
+            "id": "minor_gi_upset",
+            "icd_10_category": "K30, R11",
+            "presentation_summary": "Patient presents with mild nausea, indigestion, heartburn, or transient vomiting without systemic signs, significant pain, or blood in vomit.",
+            "tags": [
+                "nausea",
+                "indigestion",
+                "heartburn",
+                "bloating",
+                "mild_vomiting",
+                "stomach_discomfort",
+                "acidity"
+            ],
+            "match_threshold": 2,
+            "urgency_level": 5,
+            "urgency_label": "OBSERVATION",
+            "color": "blue",
+            "clinical_context": "Functional dyspepsia and mild gastroenteritis are extremely common and self-limiting. Red flags that upgrade urgency: haematemesis, melaena, significant weight loss, dysphagia, persistent vomiting > 24 hours, or signs of dehydration. Heartburn (GERD) is most common cause of epigastric discomfort in the community — responds to PPIs.",
+            "vital_flags": {
+                "hr_gt": 100
+            },
+            "next_actions": [
+                "Screen for red flags: blood in vomit/stool, weight loss, dysphagia, age > 55 new onset",
+                "Dietary advice: avoid triggers (spicy food, caffeine, alcohol, lying flat post meals)",
+                "Antacid (Gaviscon) or PPI (Omeprazole 20mg OD) for GERD/dyspepsia",
+                "Anti-emetic (Metoclopramide 10mg PO) for nausea",
+                "Adequate hydration — ORS if vomiting",
+                "Return if symptoms worsen, persist > 3 days, or if blood in vomit/stool"
+            ],
+            "contraindications": [
+                "Avoid Metoclopramide in Parkinson's disease or tardive dyskinesia history",
+                "Do NOT use Aspirin/NSAIDs for perceived stomach pain — may worsen GI bleeding"
+            ],
+            "risk_amplifiers": [
+                "nsaid_use",
+                "alcohol_use",
+                "h_pylori_infection",
+                "stress",
+                "obesity",
+                "smoking"
+            ],
+            "differential_diagnoses": [
+                "acute_abdomen_urgent",
+                "cardiac_acute",
+                "hepatitis",
+                "pancreatitis",
+                "gall_stones"
+            ]
+        }
+    ]
 }
