@@ -1,6 +1,8 @@
 const TriageSession = require('../models/TriageSession.model');
 const User = require('../models/User.model');
 const { createNotification } = require('./notification.controller');
+const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
+const { generateTriageResponse } = require('../services/gemini.service');
 
 // @desc    Create a new triage session
 // @route   POST /api/triage
@@ -79,6 +81,44 @@ const createSession = async (req, res, next) => {
             message: 'Triage session created successfully',
             data: { session },
         });
+
+        // ── Background AI analysis (don't block the response) ──
+        (async () => {
+            try {
+                session.status = 'ai_processing';
+                await session.save();
+
+                const patientData = {
+                    chiefComplaint: session.chiefComplaint,
+                    symptoms: session.symptoms,
+                    vitals: session.vitals,
+                    medicalHistory: session.medicalHistory,
+                };
+                const clinicalMatches = lookupClinicalContext(session.symptoms, session.vitals);
+                const prompt = buildTriagePrompt(patientData, clinicalMatches);
+                const aiResult = await generateTriageResponse(prompt);
+
+                session.aiRecommendation = {
+                    urgency_level: aiResult.urgency_level,
+                    urgency_label: aiResult.urgency_label,
+                    primary_concern: aiResult.primary_concern,
+                    reasoning: aiResult.reasoning,
+                    recommended_actions: aiResult.recommended_actions || [],
+                    vital_flags: aiResult.vital_flags || [],
+                    clinician_notes: aiResult.clinician_notes,
+                    confidence: aiResult.confidence,
+                    knowledgeBaseCluster: clinicalMatches.length > 0 ? clinicalMatches[0].clusterId : null,
+                    disclaimer: aiResult.disclaimer,
+                    processedAt: new Date(),
+                };
+                session.status = 'awaiting_review';
+                await session.save();
+                console.log(`✅ AI analysis complete for session ${session._id}`);
+            } catch (err) {
+                console.error(`❌ Background AI analysis failed for session ${session._id}:`, err.message);
+                // Session stays as 'pending' if AI fails — clinicians can still review manually
+            }
+        })();
     } catch (error) {
         next(error);
     }

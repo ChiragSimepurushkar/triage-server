@@ -37,15 +37,20 @@ const getUrgencyDistribution = async (req, res, next) => {
     try {
         const distribution = await TriageSession.aggregate([
             {
-                $match: {
-                    'aiRecommendation.urgency_level': { $exists: true },
+                $addFields: {
+                    label: {
+                        $ifNull: ['$aiRecommendation.urgency_label', 'PENDING']
+                    },
+                    level: {
+                        $ifNull: ['$aiRecommendation.urgency_level', 6]
+                    },
                 },
             },
             {
                 $group: {
-                    _id: '$aiRecommendation.urgency_label',
+                    _id: '$label',
                     count: { $sum: 1 },
-                    urgencyLevel: { $first: '$aiRecommendation.urgency_level' },
+                    urgencyLevel: { $first: '$level' },
                 },
             },
             { $sort: { urgencyLevel: 1 } },
