@@ -1,4 +1,6 @@
 const TriageSession = require('../models/TriageSession.model');
+const User = require('../models/User.model');
+const { createNotification } = require('./notification.controller');
 
 // @desc    Create a new triage session
 // @route   POST /api/triage
@@ -50,6 +52,27 @@ const createSession = async (req, res, next) => {
             medicalHistory,
             status: 'pending',
         });
+
+        // Notify patient
+        await createNotification(
+            req.user._id,
+            'Triage Session Created',
+            `Your triage for "${chiefComplaint.trim()}" has been submitted and is being processed.`,
+            'success',
+            `/triage/session/${session._id}`
+        );
+
+        // Notify all clinicians about new triage
+        const clinicians = await User.find({ role: 'clinician', isActive: true }).select('_id');
+        for (const clinician of clinicians) {
+            await createNotification(
+                clinician._id,
+                'New Triage Session',
+                `New patient triage: "${chiefComplaint.trim()}" — needs review.`,
+                'warning',
+                `/clinician/session/${session._id}`
+            );
+        }
 
         res.status(201).json({
             success: true,

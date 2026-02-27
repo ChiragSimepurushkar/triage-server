@@ -1,4 +1,5 @@
 const TriageSession = require('../models/TriageSession.model');
+const { createNotification } = require('./notification.controller');
 
 // @desc    Get triage queue (sorted by urgency — CRITICAL first)
 // @route   GET /api/clinician/queue
@@ -54,6 +55,15 @@ const reviewSession = async (req, res, next) => {
         session.assignedClinician = req.user._id;
         await session.save();
 
+        // Notify the patient
+        await createNotification(
+            session.patientId,
+            'Session Reviewed',
+            `Your triage session has been reviewed by Dr. ${req.user.name}.`,
+            'success',
+            `/triage/session/${session._id}`
+        );
+
         res.json({
             success: true,
             message: 'Session marked as reviewed',
@@ -106,6 +116,15 @@ const addOverride = async (req, res, next) => {
         session.status = 'reviewed';
         session.assignedClinician = req.user._id;
         await session.save();
+
+        // Notify the patient about the override
+        await createNotification(
+            session.patientId,
+            'Urgency Updated',
+            `Dr. ${req.user.name} reviewed your session and set urgency to ${finalUrgencyLabel.trim().toUpperCase()}.`,
+            finalUrgency <= 2 ? 'error' : 'info',
+            `/triage/session/${session._id}`
+        );
 
         res.json({
             success: true,
