@@ -211,7 +211,7 @@ const sendOtp = async (req, res, next) => {
     }
 };
 
-// @desc    Login — Step 1: validate credentials & send OTP
+// @desc    Login — validate credentials, OTP only if not verified yet
 // @route   POST /api/auth/login
 const login = async (req, res, next) => {
     try {
@@ -243,7 +243,32 @@ const login = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Your account has been deactivated. Contact support for help.' });
         }
 
-        // Generate and send OTP for 2FA
+        // If already verified → skip OTP, issue tokens directly
+        if (user.isEmailVerified) {
+            const accessToken = generateAccessToken(user._id, user.role);
+            const refreshToken = generateRefreshToken(user._id, user.role);
+            user.refreshToken = refreshToken;
+            await user.save({ validateBeforeSave: false });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            return res.json({
+                success: true,
+                message: 'Login successful',
+                data: {
+                    user: buildUserResponse(user),
+                    accessToken,
+                    requiresOtp: false,
+                },
+            });
+        }
+
+        // Not verified yet → send OTP
         const otp = generateOTP();
         user.otp = otp;
         user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
@@ -336,4 +361,73 @@ const uploadAvatar = async (req, res, next) => {
     }
 };
 
-module.exports = { register, login, refreshToken: refreshTokenHandler, logout, getMe, sendOtp, verifyOtp, uploadAvatar };
+// @desc    Google Sign-In — backend handler
+// @route   POST /api/auth/google
+const googleAuth = async (req, res, next) => {
+    try {
+        const { name, email, avatar, uid } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required from Google' });
+        }
+
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            // Create new user from Google data (no password required)
+            user = new User({
+                name: name || 'Google User',
+                email,
+                password: uid + crypto.randomBytes(8).toString('hex'), // random password
+                role: 'patient',
+                isEmailVerified: true,
+                avatar: avatar || '',
+            });
+            await user.save();
+
+            // Create patient profile
+            await Patient.create({ userId: user._id });
+
+            // Welcome notification
+            await createNotification(
+                user._id,
+                'Welcome to TriageIQ!',
+                'Your account has been created via Google. Start your first triage session now.',
+                'success',
+                '/triage/new'
+            );
+        } else {
+            // Update avatar if user doesn't have one yet
+            if (!user.avatar && avatar) {
+                user.avatar = avatar;
+                await user.save({ validateBeforeSave: false });
+            }
+        }
+
+        // Generate tokens
+        const accessToken = generateAccessToken(user._id, user.role);
+        const refreshToken = generateRefreshToken(user._id, user.role);
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        res.json({
+            success: true,
+            message: 'Google sign-in successful',
+            data: {
+                user: buildUserResponse(user),
+                accessToken,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { register, login, refreshToken: refreshTokenHandler, logout, getMe, sendOtp, verifyOtp, uploadAvatar, googleAuth };
