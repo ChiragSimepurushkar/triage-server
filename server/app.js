@@ -11,6 +11,7 @@ const aiRoutes = require('./routes/ai.routes');
 const clinicianRoutes = require('./routes/clinician.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/clinician', clinicianRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 // --- 404 Handler ---
 app.use((req, res) => {
