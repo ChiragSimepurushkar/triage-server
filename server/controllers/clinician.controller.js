@@ -10,12 +10,15 @@ const getTriageQueue = async (req, res, next) => {
         if (status) {
             filter.status = status;
         } else {
-            // Default: show pending and awaiting_review sessions
             filter.status = { $in: ['pending', 'ai_processing', 'awaiting_review'] };
         }
 
         if (urgency) {
-            filter['aiRecommendation.urgency_level'] = parseInt(urgency);
+            const u = parseInt(urgency);
+            if (isNaN(u) || u < 1 || u > 5) {
+                return res.status(400).json({ success: false, message: 'Urgency filter must be a number between 1 (Critical) and 5 (Observation)' });
+            }
+            filter['aiRecommendation.urgency_level'] = u;
         }
 
         const sessions = await TriageSession.find(filter)
@@ -43,7 +46,7 @@ const reviewSession = async (req, res, next) => {
         if (!session) {
             return res.status(404).json({
                 success: false,
-                message: 'Triage session not found',
+                message: 'Triage session not found.',
             });
         }
 
@@ -67,20 +70,37 @@ const addOverride = async (req, res, next) => {
     try {
         const { notes, finalUrgency, finalUrgencyLabel } = req.body;
 
+        // ── Validation ──
+        const errors = [];
+        if (!finalUrgency && finalUrgency !== 0) {
+            errors.push('Final urgency level is required (1 = Critical, 5 = Observation)');
+        } else if (finalUrgency < 1 || finalUrgency > 5) {
+            errors.push('Final urgency must be between 1 (Critical) and 5 (Observation)');
+        }
+        if (!finalUrgencyLabel || finalUrgencyLabel.trim().length === 0) {
+            errors.push('Urgency label is required (e.g. CRITICAL, HIGH, MODERATE, LOW, OBSERVATION)');
+        }
+        if (!notes || notes.trim().length < 5) {
+            errors.push('Clinical notes are required (at least 5 characters to be meaningful)');
+        }
+        if (errors.length > 0) {
+            return res.status(400).json({ success: false, message: errors.join('. '), errors });
+        }
+
         const session = await TriageSession.findById(req.params.id);
 
         if (!session) {
             return res.status(404).json({
                 success: false,
-                message: 'Triage session not found',
+                message: 'Triage session not found.',
             });
         }
 
         session.clinicianOverride = {
             clinicianId: req.user._id,
-            notes,
+            notes: notes.trim(),
             finalUrgency,
-            finalUrgencyLabel,
+            finalUrgencyLabel: finalUrgencyLabel.trim().toUpperCase(),
             timestamp: new Date(),
         };
         session.status = 'reviewed';
@@ -110,7 +130,7 @@ const closeSession = async (req, res, next) => {
         if (!session) {
             return res.status(404).json({
                 success: false,
-                message: 'Triage session not found',
+                message: 'Triage session not found.',
             });
         }
 
