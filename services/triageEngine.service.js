@@ -126,7 +126,7 @@ const lookupClinicalContext = (symptoms, vitals = {}) => {
  * @param {string} contextSummaryText - Formatted patient context summary text
  * @returns {string} Complete prompt
  */
-const buildTriagePrompt = (patientData, graphResult, contextSummaryText = '') => {
+const buildTriagePrompt = (patientData, graphResult, contextSummaryText = '', vectorResult = null) => {
     // ── Primary clinical context ──
     let clinicalContext = 'No specific clinical context matched from knowledge base.';
     if (graphResult.primaryMatches && graphResult.primaryMatches.length > 0) {
@@ -198,6 +198,15 @@ const buildTriagePrompt = (patientData, graphResult, contextSummaryText = '') =>
         ? `\n${contextSummaryText}\n`
         : '';
 
+    // ── Semantic vector matches section ──
+    let vectorSection = '';
+    if (vectorResult?.matches?.length > 0) {
+        vectorSection = '\n\nSEMANTIC CLINICAL CONTEXT (from medical literature similarity search — use to INFORM reasoning, but knowledge graph rules above take PRIORITY for urgency):\n' +
+            vectorResult.matches
+                .map((m, i) => `${i + 1}. [${m.metadata?.urgency_label || '?'}] ${m.clusterId.replace(/_/g, ' ')} (similarity: ${(m.similarity * 100).toFixed(0)}%)\n   ${m.content.slice(0, 200)}${m.content.length > 200 ? '...' : ''}`)
+                .join('\n');
+    }
+
     return `
 You are a clinical triage decision support system. Your role is to assist clinicians — NOT to diagnose patients.
 
@@ -211,7 +220,7 @@ PATIENT DATA:
 - Allergies: ${patientData.medicalHistory?.allergies || 'None known'}
 ${contextSection}
 CLINICAL KNOWLEDGE BASE CONTEXT (from knowledge graph — ${graphResult.graphTraversal?.primaryCount || 0} primary matches, ${graphResult.graphTraversal?.differentialCount || 0} differentials found):
-${clinicalContext}${differentialContext}${riskContext}${contraindicationContext}${questionContext}
+${clinicalContext}${differentialContext}${riskContext}${contraindicationContext}${questionContext}${vectorSection}
 
 Based on the above patient data, clinical knowledge base context, differential diagnoses, and risk amplifiers, provide a structured triage assessment.
 Do NOT provide a diagnosis. Only assess urgency and recommend next steps for the clinician.

@@ -6,6 +6,7 @@ const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighb
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
 const { buildPatientContextSummary, formatSummaryForPrompt } = require('../services/patientContextSummary.service');
 const { calibrateConfidence } = require('../services/confidenceCalibration.service');
+const { searchSimilar } = require('../services/vectorEngine.service');
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
 const path = require('path');
@@ -41,19 +42,24 @@ const analyzeSession = async (req, res, next) => {
             medicalHistory: session.medicalHistory,
         };
 
-        // Step 1: Graph-based clinical context lookup
-        const graphResult = queryGraph(
-            session.symptoms,
-            session.vitals,
-            session.medicalHistory
-        );
+        // Step 1: Dual retrieval — Graph + Vector in parallel
+        const symptomNames = (session.symptoms || []).map((s) => typeof s === 'string' ? s : s.name || '').filter(Boolean);
+        const vectorQuery = `${session.chiefComplaint || ''} ${symptomNames.join(', ')}`.trim();
+
+        const [graphResult, vectorResult] = await Promise.all([
+            Promise.resolve(queryGraph(session.symptoms, session.vitals, session.medicalHistory)),
+            searchSimilar(vectorQuery, 5).catch((err) => {
+                console.error('Vector search failed (continuing with graph only):', err.message);
+                return { matches: [], fallback: true };
+            }),
+        ]);
 
         // Step 2: Generate patient context summary
         const contextSummary = buildPatientContextSummary(patientData, graphResult);
         const contextSummaryText = formatSummaryForPrompt(contextSummary);
 
-        // Step 3: Build graph-enhanced prompt with context summary
-        const prompt = buildTriagePrompt(patientData, graphResult, contextSummaryText);
+        // Step 3: Build graph-enhanced prompt with vector context
+        const prompt = buildTriagePrompt(patientData, graphResult, contextSummaryText, vectorResult);
 
         // Step 4: Call Gemini
         const aiResult = await generateTriageResponse(prompt);
@@ -62,6 +68,7 @@ const analyzeSession = async (req, res, next) => {
         const calibration = calibrateConfidence({
             aiResult,
             graphResult,
+            vectorResult,
             contextSummary,
             patientData,
         });
@@ -144,6 +151,11 @@ const analyzeSession = async (req, res, next) => {
                     level: calibration.confidenceLevel,
                     requiresHumanReview: calibration.requiresHumanReview,
                     flags: calibration.uncertaintyFlags.length,
+                },
+                vectorContext: {
+                    matched: vectorResult.matches?.length || 0,
+                    topMatch: vectorResult.matches?.[0]?.clusterId || null,
+                    topSimilarity: vectorResult.matches?.[0]?.similarity?.toFixed(3) || null,
                 },
             },
         });

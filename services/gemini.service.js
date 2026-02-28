@@ -2,13 +2,47 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 let genAI = null;
 let model = null;
+let embeddingModel = null;
 
 const initGemini = () => {
     if (!genAI && process.env.GEMINI_API_KEY) {
         genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+        embeddingModel = genAI.getGenerativeModel({ model: 'embedding-001' });
     }
     return model;
+};
+
+/**
+ * Generate a text embedding using Gemini's REST API directly.
+ * The old SDK (v0.21) routes to v1beta where embedding models aren't available.
+ * We call the v1 endpoint directly to avoid this.
+ * @param {string} text - Text to embed
+ * @returns {number[]} Embedding vector
+ */
+const embedText = async (text) => {
+    if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    const model = 'gemini-embedding-001';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: `models/${model}`,
+            content: { parts: [{ text }] },
+        }),
+    });
+
+    if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Embedding API error ${response.status}: ${err}`);
+    }
+
+    const data = await response.json();
+    return data.embedding.values;
 };
 
 /**
@@ -96,4 +130,4 @@ const getFallbackResponse = (errorMsg = null) => {
     };
 };
 
-module.exports = { generateTriageResponse, initGemini };
+module.exports = { generateTriageResponse, initGemini, embedText };

@@ -6,11 +6,12 @@
  * uncertain cases for mandatory human review.
  *
  * Factors:
- *  1. Data Completeness   (25%) — how much patient data was provided
- *  2. Graph Match Strength (25%) — how strongly symptoms matched KB clusters
- *  3. Vital Consistency    (20%) — do vitals corroborate the urgency?
- *  4. AI-KB Agreement      (20%) — does Gemini agree with the graph's urgency?
+ *  1. Data Completeness   (22%) — how much patient data was provided
+ *  2. Graph Match Strength (22%) — how strongly symptoms matched KB clusters
+ *  3. Vital Consistency    (18%) — do vitals corroborate the urgency?
+ *  4. AI-KB Agreement      (18%) — does Gemini agree with the graph's urgency?
  *  5. Symptom Specificity  (10%) — vague vs. specific symptom descriptions
+ *  6. Semantic Match Quality(10%) — do vector search results corroborate?
  */
 
 // ── Urgency level to label map ──
@@ -25,16 +26,16 @@ const URGENCY_MAP = { 1: 'CRITICAL', 2: 'URGENT', 3: 'MODERATE', 4: 'LOW', 5: 'O
  * @param {object} params.patientData    - Raw patient data
  * @returns {object} Calibrated confidence result
  */
-const calibrateConfidence = ({ aiResult, graphResult, contextSummary, patientData }) => {
+const calibrateConfidence = ({ aiResult, graphResult, vectorResult, contextSummary, patientData }) => {
     const factors = {};
     const uncertaintyFlags = [];
 
-    // ── Factor 1: Data Completeness (25%) ──
+    // ── Factor 1: Data Completeness (22%) ──
     const completeness = contextSummary.completenessScore;
     factors.dataCompleteness = {
         score: completeness,
-        weight: 0.25,
-        weighted: Math.round(completeness * 0.25),
+        weight: 0.22,
+        weighted: Math.round(completeness * 0.22),
     };
     if (completeness < 40) {
         uncertaintyFlags.push({
@@ -50,12 +51,12 @@ const calibrateConfidence = ({ aiResult, graphResult, contextSummary, patientDat
         });
     }
 
-    // ── Factor 2: Graph Match Strength (25%) ──
+    // ── Factor 2: Graph Match Strength (22%) ──
     const graphScore = calculateGraphMatchStrength(graphResult);
     factors.graphMatchStrength = {
         score: graphScore,
-        weight: 0.25,
-        weighted: Math.round(graphScore * 0.25),
+        weight: 0.22,
+        weighted: Math.round(graphScore * 0.22),
     };
     if (graphScore < 30) {
         uncertaintyFlags.push({
@@ -65,23 +66,23 @@ const calibrateConfidence = ({ aiResult, graphResult, contextSummary, patientDat
         });
     }
 
-    // ── Factor 3: Vital Consistency (20%) ──
+    // ── Factor 3: Vital Consistency (18%) ──
     const vitalScore = calculateVitalConsistency(aiResult, contextSummary);
     factors.vitalConsistency = {
         score: vitalScore.score,
-        weight: 0.20,
-        weighted: Math.round(vitalScore.score * 0.20),
+        weight: 0.18,
+        weighted: Math.round(vitalScore.score * 0.18),
     };
     for (const flag of vitalScore.flags) {
         uncertaintyFlags.push(flag);
     }
 
-    // ── Factor 4: AI-KB Agreement (20%) ──
+    // ── Factor 4: AI-KB Agreement (18%) ──
     const agreementScore = calculateAIKBAgreement(aiResult, graphResult);
     factors.aiKbAgreement = {
         score: agreementScore.score,
-        weight: 0.20,
-        weighted: Math.round(agreementScore.score * 0.20),
+        weight: 0.18,
+        weighted: Math.round(agreementScore.score * 0.18),
     };
     for (const flag of agreementScore.flags) {
         uncertaintyFlags.push(flag);
@@ -102,13 +103,25 @@ const calibrateConfidence = ({ aiResult, graphResult, contextSummary, patientDat
         });
     }
 
+    // ── Factor 6: Semantic Match Quality (10%) ──
+    const vectorScore = calculateVectorMatchQuality(graphResult, vectorResult);
+    factors.semanticMatch = {
+        score: vectorScore.score,
+        weight: 0.10,
+        weighted: Math.round(vectorScore.score * 0.10),
+    };
+    for (const flag of vectorScore.flags) {
+        uncertaintyFlags.push(flag);
+    }
+
     // ── Calculate total ──
     const totalScore = Math.round(
         factors.dataCompleteness.weighted +
         factors.graphMatchStrength.weighted +
         factors.vitalConsistency.weighted +
         factors.aiKbAgreement.weighted +
-        factors.symptomSpecificity.weighted
+        factors.symptomSpecificity.weighted +
+        factors.semanticMatch.weighted
     );
 
     // Clamp to 0-100
@@ -307,6 +320,64 @@ const calculateSymptomSpecificity = (symptoms = []) => {
     score += Math.min((hasDuration / symptoms.length) * 15, 15);
 
     return Math.max(0, Math.min(100, score));
+};
+
+/**
+ * Factor 6: Do vector search results corroborate the graph analysis?
+ */
+const calculateVectorMatchQuality = (graphResult, vectorResult) => {
+    const flags = [];
+
+    // If vector engine wasn't available, neutral
+    if (!vectorResult || vectorResult.fallback || !vectorResult.matches) {
+        return { score: 50, flags };
+    }
+
+    const vectorMatches = vectorResult.matches || [];
+    const graphMatches = graphResult?.primaryMatches || [];
+
+    // No vector matches at all
+    if (vectorMatches.length === 0) {
+        if (graphMatches.length === 0) {
+            // Both systems found nothing — flag it
+            flags.push({
+                type: 'NO_RAG_MATCH',
+                severity: 'HIGH',
+                message: 'Neither the knowledge graph nor semantic search found relevant clinical matches. AI assessment relies on general medical knowledge only.',
+            });
+            return { score: 15, flags };
+        }
+        // Graph matched but vectors didn't — unusual but not critical
+        return { score: 40, flags };
+    }
+
+    // Check corroboration: do vector top results overlap with graph matches?
+    const graphClusterIds = new Set(graphMatches.map((m) => m.clusterId));
+    const vectorClusterIds = vectorMatches.map((m) => m.clusterId);
+    const overlap = vectorClusterIds.filter((id) => graphClusterIds.has(id)).length;
+
+    const topSimilarity = vectorMatches[0]?.similarity || 0;
+
+    let score = 40; // Base
+
+    // Strong vector match
+    if (topSimilarity > 0.7) score += 25;
+    else if (topSimilarity > 0.5) score += 15;
+
+    // Corroboration: vector and graph agree on clusters
+    if (overlap > 0) {
+        score += Math.min(overlap * 15, 30);
+    } else if (graphMatches.length > 0 && vectorMatches.length > 0) {
+        // Both found results but disagree — reduce but don't flag
+        score -= 10;
+    }
+
+    // Vectors compensating for graph miss
+    if (graphMatches.length === 0 && vectorMatches.length > 0 && topSimilarity > 0.5) {
+        score += 10; // Vector found what graph couldn't
+    }
+
+    return { score: Math.max(0, Math.min(100, score)), flags };
 };
 
 module.exports = { calibrateConfidence };
