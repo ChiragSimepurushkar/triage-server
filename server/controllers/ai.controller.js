@@ -2,10 +2,14 @@ const TriageSession = require('../models/TriageSession.model');
 const AIRecommendation = require('../models/AIRecommendation.model');
 const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
+const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors } = require('../services/graphEngine.service');
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
+const { buildPatientContextSummary, formatSummaryForPrompt } = require('../services/patientContextSummary.service');
+const { calibrateConfidence } = require('../services/confidenceCalibration.service');
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
 const path = require('path');
+const Tesseract = require('tesseract.js');
 
 // @desc    Analyze a triage session with AI
 // @route   POST /api/ai/analyze/:sessionId
@@ -37,28 +41,54 @@ const analyzeSession = async (req, res, next) => {
             medicalHistory: session.medicalHistory,
         };
 
-        // Step 1: Look up clinical context from knowledge base
-        const clinicalMatches = lookupClinicalContext(session.symptoms, session.vitals);
+        // Step 1: Graph-based clinical context lookup
+        const graphResult = queryGraph(
+            session.symptoms,
+            session.vitals,
+            session.medicalHistory
+        );
 
-        // Step 2: Build prompt with clinical context
-        const prompt = buildTriagePrompt(patientData, clinicalMatches);
+        // Step 2: Generate patient context summary
+        const contextSummary = buildPatientContextSummary(patientData, graphResult);
+        const contextSummaryText = formatSummaryForPrompt(contextSummary);
 
-        // Step 3: Call Gemini
+        // Step 3: Build graph-enhanced prompt with context summary
+        const prompt = buildTriagePrompt(patientData, graphResult, contextSummaryText);
+
+        // Step 4: Call Gemini
         const aiResult = await generateTriageResponse(prompt);
 
-        // Step 4: Save AI recommendation
+        // Step 5: Run confidence calibration (independent algorithmic layer)
+        const calibration = calibrateConfidence({
+            aiResult,
+            graphResult,
+            contextSummary,
+            patientData,
+        });
+
+        console.log(`🎯 Confidence: ${calibration.confidenceScore}/100 (${calibration.confidenceLevel})${calibration.requiresHumanReview ? ' ⚠ FLAGGED FOR REVIEW' : ''}`);
+
+        // Step 6: Save AI recommendation with calibrated confidence + reasoning traces
         const knowledgeBaseCluster =
-            clinicalMatches.length > 0 ? clinicalMatches[0].clusterId : null;
+            graphResult.primaryMatches.length > 0 ? graphResult.primaryMatches[0].clusterId : null;
 
         session.aiRecommendation = {
             urgency_level: aiResult.urgency_level,
             urgency_label: aiResult.urgency_label,
             primary_concern: aiResult.primary_concern,
             reasoning: aiResult.reasoning,
+            reasoning_trace: aiResult.reasoning_trace || [],
             recommended_actions: aiResult.recommended_actions || [],
             vital_flags: aiResult.vital_flags || [],
+            differentials_to_rule_out: aiResult.differentials_to_rule_out || [],
+            clarifying_questions: aiResult.clarifying_questions || [],
             clinician_notes: aiResult.clinician_notes,
-            confidence: aiResult.confidence,
+            confidence: calibration.confidenceLevel, // Use calibrated, not Gemini self-reported
+            confidenceScore: calibration.confidenceScore,
+            uncertaintyFlags: calibration.uncertaintyFlags,
+            requiresHumanReview: calibration.requiresHumanReview,
+            reviewReasons: calibration.reviewReasons,
+            patientContextSummary: contextSummary,
             knowledgeBaseCluster,
             disclaimer: aiResult.disclaimer,
             processedAt: new Date(),
@@ -71,16 +101,24 @@ const analyzeSession = async (req, res, next) => {
         await AIRecommendation.create({
             sessionId: session._id,
             ...aiResult,
+            reasoning_trace: aiResult.reasoning_trace || [],
+            differentials_to_rule_out: aiResult.differentials_to_rule_out || [],
+            clarifying_questions: aiResult.clarifying_questions || [],
+            confidenceScore: calibration.confidenceScore,
+            confidence: calibration.confidenceLevel,
+            uncertaintyFlags: calibration.uncertaintyFlags,
+            requiresHumanReview: calibration.requiresHumanReview,
+            reviewReasons: calibration.reviewReasons,
+            patientContextSummary: contextSummary,
             knowledgeBaseCluster,
             rawResponse: JSON.stringify(aiResult),
         });
 
-        // Step 5: Send critical alert email if urgency is CRITICAL
+        // Step 7: Send critical alert email if urgency is CRITICAL
         if (aiResult.urgency_level === 1) {
             const patientUser = await require('../models/User.model').findById(session.patientId);
-            // Non-blocking email — don't await
             sendCriticalAlert({
-                to: process.env.EMAIL_USER, // Send to configured admin/clinician email
+                to: process.env.EMAIL_USER,
                 patientName: patientUser?.name || 'Unknown Patient',
                 urgencyLabel: aiResult.urgency_label,
                 primaryConcern: aiResult.primary_concern,
@@ -93,8 +131,20 @@ const analyzeSession = async (req, res, next) => {
             message: 'AI analysis complete',
             data: {
                 session,
-                knowledgeBaseMatches: clinicalMatches.length,
-                matchedClusters: clinicalMatches.map((m) => m.clusterId),
+                graphTraversal: graphResult.graphTraversal,
+                matchedClusters: graphResult.primaryMatches.map((m) => m.clusterId),
+                differentials: graphResult.differentials.map((d) => d.clusterId),
+                riskAmplifiers: graphResult.riskMatches.map((r) => ({
+                    factor: r.riskFactor,
+                    cluster: r.amplifiedCluster,
+                })),
+                clarifyingQuestions: graphResult.clarifyingQuestions.map((q) => q.question),
+                confidenceCalibration: {
+                    score: calibration.confidenceScore,
+                    level: calibration.confidenceLevel,
+                    requiresHumanReview: calibration.requiresHumanReview,
+                    flags: calibration.uncertaintyFlags.length,
+                },
             },
         });
     } catch (error) {
@@ -185,19 +235,34 @@ IMPORTANT:
         let result;
 
         if (mimeType.startsWith('image/')) {
-            // Image file — use Gemini multimodal
-            const imageData = fs.readFileSync(filePath);
-            const base64 = imageData.toString('base64');
+            // OCR-first approach: extract text with Tesseract.js, then send text to Gemini
+            // This avoids expensive multimodal calls and 429 rate-limit errors
+            console.log('🔍 Running Tesseract OCR on image...');
+            const ocrResult = await Tesseract.recognize(filePath, 'eng');
+            const ocrText = ocrResult.data?.text?.trim() || '';
+            console.log(`📄 OCR extracted ${ocrText.length} characters`);
 
-            result = await geminiModel.generateContent([
-                PARSE_PROMPT + '\n\nThis is an image of a medical report. Extract all visible health data.',
-                {
-                    inlineData: {
-                        mimeType: mimeType,
-                        data: base64,
+            if (ocrText.length > 50) {
+                // Good OCR result — send as text to Gemini (much cheaper than multimodal)
+                result = await geminiModel.generateContent(
+                    PARSE_PROMPT + `\n\nOCR-extracted text from medical report image:\n${ocrText.slice(0, 15000)}`
+                );
+            } else {
+                // OCR yielded very little text — fallback to Gemini multimodal
+                console.log('⚠️ OCR text too short, falling back to Gemini multimodal...');
+                const imageData = fs.readFileSync(filePath);
+                const base64 = imageData.toString('base64');
+
+                result = await geminiModel.generateContent([
+                    PARSE_PROMPT + '\n\nThis is an image of a medical report. Extract all visible health data.',
+                    {
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64,
+                        },
                     },
-                },
-            ]);
+                ]);
+            }
         } else {
             // Text file (XML, JSON, CSV, etc.)
             const fileContent = fs.readFileSync(filePath, 'utf-8');
@@ -253,4 +318,33 @@ IMPORTANT:
     }
 };
 
-module.exports = { analyzeSession, getRecommendation, parseHealthFile };
+// @desc    Get clinical knowledge graph stats
+// @route   GET /api/ai/graph/stats
+const getGraphStatsHandler = (req, res) => {
+    res.json({ success: true, data: getGraphStats() });
+};
+
+// @desc    Export graph for frontend visualization
+// @route   GET /api/ai/graph/visualize
+const getGraphVisualization = (req, res) => {
+    res.json({ success: true, data: exportGraphForVisualization() });
+};
+
+// @desc    Get cluster neighbors (symptoms, differentials, risks)
+// @route   GET /api/ai/graph/cluster/:clusterId
+const getClusterDetail = (req, res) => {
+    const result = getClusterNeighbors(req.params.clusterId);
+    if (!result) {
+        return res.status(404).json({ success: false, message: 'Cluster not found in graph' });
+    }
+    res.json({ success: true, data: result });
+};
+
+module.exports = {
+    analyzeSession,
+    getRecommendation,
+    parseHealthFile,
+    getGraphStatsHandler,
+    getGraphVisualization,
+    getClusterDetail,
+};

@@ -20,13 +20,32 @@ const aiRecommendationSchema = new mongoose.Schema(
         },
         primary_concern: String,
         reasoning: String,
+        reasoning_trace: [
+            {
+                step: String,
+                finding: String,
+            },
+        ],
         recommended_actions: [String],
         vital_flags: [String],
+        differentials_to_rule_out: [String],
+        clarifying_questions: [String],
         clinician_notes: String,
         confidence: {
             type: String,
             enum: ['HIGH', 'MEDIUM', 'LOW'],
         },
+        confidenceScore: { type: Number, min: 0, max: 100 },
+        uncertaintyFlags: [
+            {
+                type: String,
+                severity: { type: String, enum: ['HIGH', 'MEDIUM', 'LOW'] },
+                message: String,
+            },
+        ],
+        requiresHumanReview: { type: Boolean, default: false },
+        reviewReasons: [String],
+        patientContextSummary: { type: mongoose.Schema.Types.Mixed },
         knowledgeBaseCluster: String,
         disclaimer: {
             type: String,
