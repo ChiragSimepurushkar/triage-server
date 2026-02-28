@@ -2,7 +2,7 @@ const TriageSession = require('../models/TriageSession.model');
 const AIRecommendation = require('../models/AIRecommendation.model');
 const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
-const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors } = require('../services/graphEngine.service');
+const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors, exportPatientGraph, getAvailableSymptomTags } = require('../services/graphEngine.service');
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
 const { buildPatientContextSummary, formatSummaryForPrompt } = require('../services/patientContextSummary.service');
 const { calibrateConfidence } = require('../services/confidenceCalibration.service');
@@ -340,6 +340,136 @@ const getClusterDetail = (req, res) => {
     res.json({ success: true, data: result });
 };
 
+// @desc    Get patient-specific graph visualization with AI insight
+// @route   GET /api/ai/graph/patient/:sessionId
+const getPatientGraphVisualization = async (req, res, next) => {
+    try {
+        const session = await TriageSession.findById(req.params.sessionId);
+        if (!session) {
+            return res.status(404).json({ success: false, message: 'Triage session not found' });
+        }
+
+        // Step 1: Use Gemini to map patient symptoms to closest KB tags
+        let enrichedSymptoms = [...(session.symptoms || [])];
+        try {
+            const geminiModel = initGemini();
+            if (geminiModel && session.symptoms?.length > 0) {
+                const availableTags = getAvailableSymptomTags();
+                const symptomNames = session.symptoms.map((s) =>
+                    typeof s === 'string' ? s : s.name || ''
+                ).filter(Boolean);
+
+                const mapPrompt = `You are a medical terminology mapper. Map each patient symptom below to the closest matching tags from the clinical knowledge base.
+
+PATIENT SYMPTOMS: ${symptomNames.join(', ')}
+
+AVAILABLE KB TAGS: ${availableTags.join(', ')}
+
+For each patient symptom, find 1-3 closest matching KB tags. A match can be a synonym, related concept, or the same body system.
+
+Respond ONLY with a JSON array of objects, no markdown:
+[{"symptom": "original symptom", "mapped_tags": ["tag1", "tag2"]}]`;
+
+                const mapResult = await geminiModel.generateContent(mapPrompt);
+                const mapText = mapResult.response.text();
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(mapText);
+                } catch {
+                    const jsonMatch = mapText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+                    if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+                }
+
+                if (Array.isArray(parsed)) {
+                    for (const mapping of parsed) {
+                        for (const tag of mapping.mapped_tags || []) {
+                            const clean = tag.trim().replace(/\s+/g, ' ');
+                            if (clean && !symptomNames.some((s) => s.toLowerCase() === clean.toLowerCase())) {
+                                enrichedSymptoms.push({ name: clean, severity: 3, duration: 'mapped' });
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Symptom mapping failed (continuing with originals):', err.message);
+        }
+
+        // Step 2: Generate patient-highlighted graph with enriched symptoms
+        const result = exportPatientGraph({
+            symptoms: enrichedSymptoms,
+            vitals: session.vitals,
+            medicalHistory: session.medicalHistory,
+        });
+
+        // Build a focused AI clinical narrative for the highlighted graph
+        let aiInsight = null;
+        try {
+            const geminiModel = initGemini();
+            if (geminiModel) {
+                const highlightedNodes = result.graph.nodes.filter((n) => n.highlighted);
+                const primaryClusters = highlightedNodes.filter((n) => n.highlightType === 'primary_match');
+                const diffClusters = highlightedNodes.filter((n) => n.highlightType === 'differential');
+                const riskNodes = highlightedNodes.filter((n) => n.highlightType === 'risk_amplifier');
+                const symptomNodes = highlightedNodes.filter((n) => n.highlightType === 'matched_symptom');
+
+                const insightPrompt = `You are a clinical decision support AI helping a doctor understand a patient's condition through a clinical knowledge graph.
+
+The patient's data has been mapped onto a clinical knowledge graph. Here is what was found:
+
+MATCHED SYMPTOM CLUSTERS (primary conditions matching the patient):
+${primaryClusters.map((c) => `- ${c.label} [${c.urgency_label}]: ${c.highlightReason}`).join('\n') || 'None'}
+
+PATIENT SYMPTOMS FOUND IN GRAPH:
+${symptomNodes.map((s) => `- ${s.label}`).join('\n') || 'None'}
+
+DIFFERENTIAL DIAGNOSES (connected conditions to consider):
+${diffClusters.map((d) => `- ${d.label} [${d.urgency_label}]: ${d.highlightReason}`).join('\n') || 'None'}
+
+PATIENT RISK AMPLIFIERS (from medical history):
+${riskNodes.map((r) => `- ${r.label}: ${r.highlightReason}`).join('\n') || 'None'}
+
+PATIENT VITALS: BP ${session.vitals?.bp_systolic || '?'}/${session.vitals?.bp_diastolic || '?'}, HR ${session.vitals?.heart_rate || '?'}bpm, SpO2 ${session.vitals?.spo2 || '?'}%, Temp ${session.vitals?.temperature || '?'}°C
+CHIEF COMPLAINT: ${session.chiefComplaint || 'Not specified'}
+
+Provide a concise clinical narrative (3-5 sentences) for the reviewing doctor explaining:
+1. What the highlighted graph connections reveal about this patient's condition
+2. Which connections are most clinically significant and why
+3. What the doctor should pay closest attention to
+
+Respond as plain text only, no JSON. Write for a medical professional.`;
+
+                const aiResult = await geminiModel.generateContent(insightPrompt);
+                aiInsight = aiResult.response.text();
+            }
+        } catch (err) {
+            console.error('AI insight generation failed:', err.message);
+            aiInsight = null;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                graph: result.graph,
+                queryResult: result.queryResult,
+                aiInsight,
+                session: {
+                    _id: session._id,
+                    chiefComplaint: session.chiefComplaint,
+                    patientId: session.patientId,
+                    symptoms: session.symptoms,
+                    vitals: session.vitals,
+                    medicalHistory: session.medicalHistory,
+                    aiRecommendation: session.aiRecommendation,
+                },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     analyzeSession,
     getRecommendation,
@@ -347,4 +477,5 @@ module.exports = {
     getGraphStatsHandler,
     getGraphVisualization,
     getClusterDetail,
+    getPatientGraphVisualization,
 };
