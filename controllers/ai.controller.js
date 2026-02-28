@@ -2,7 +2,7 @@ const TriageSession = require('../models/TriageSession.model');
 const AIRecommendation = require('../models/AIRecommendation.model');
 const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
-const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors } = require('../services/graphEngine.service');
+const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors, exportPatientGraph } = require('../services/graphEngine.service');
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
@@ -302,6 +302,89 @@ const getClusterDetail = (req, res) => {
     res.json({ success: true, data: result });
 };
 
+// @desc    Get patient-specific graph visualization with AI insight
+// @route   GET /api/ai/graph/patient/:sessionId
+const getPatientGraphVisualization = async (req, res, next) => {
+    try {
+        const session = await TriageSession.findById(req.params.sessionId);
+        if (!session) {
+            return res.status(404).json({ success: false, message: 'Triage session not found' });
+        }
+
+        // Generate patient-highlighted graph
+        const result = exportPatientGraph({
+            symptoms: session.symptoms,
+            vitals: session.vitals,
+            medicalHistory: session.medicalHistory,
+        });
+
+        // Build a focused AI clinical narrative for the highlighted graph
+        let aiInsight = null;
+        try {
+            const geminiModel = initGemini();
+            if (geminiModel) {
+                const highlightedNodes = result.graph.nodes.filter((n) => n.highlighted);
+                const primaryClusters = highlightedNodes.filter((n) => n.highlightType === 'primary_match');
+                const diffClusters = highlightedNodes.filter((n) => n.highlightType === 'differential');
+                const riskNodes = highlightedNodes.filter((n) => n.highlightType === 'risk_amplifier');
+                const symptomNodes = highlightedNodes.filter((n) => n.highlightType === 'matched_symptom');
+
+                const insightPrompt = `You are a clinical decision support AI helping a doctor understand a patient's condition through a clinical knowledge graph.
+
+The patient's data has been mapped onto a clinical knowledge graph. Here is what was found:
+
+MATCHED SYMPTOM CLUSTERS (primary conditions matching the patient):
+${primaryClusters.map((c) => `- ${c.label} [${c.urgency_label}]: ${c.highlightReason}`).join('\n') || 'None'}
+
+PATIENT SYMPTOMS FOUND IN GRAPH:
+${symptomNodes.map((s) => `- ${s.label}`).join('\n') || 'None'}
+
+DIFFERENTIAL DIAGNOSES (connected conditions to consider):
+${diffClusters.map((d) => `- ${d.label} [${d.urgency_label}]: ${d.highlightReason}`).join('\n') || 'None'}
+
+PATIENT RISK AMPLIFIERS (from medical history):
+${riskNodes.map((r) => `- ${r.label}: ${r.highlightReason}`).join('\n') || 'None'}
+
+PATIENT VITALS: BP ${session.vitals?.bp_systolic || '?'}/${session.vitals?.bp_diastolic || '?'}, HR ${session.vitals?.heart_rate || '?'}bpm, SpO2 ${session.vitals?.spo2 || '?'}%, Temp ${session.vitals?.temperature || '?'}°C
+CHIEF COMPLAINT: ${session.chiefComplaint || 'Not specified'}
+
+Provide a concise clinical narrative (3-5 sentences) for the reviewing doctor explaining:
+1. What the highlighted graph connections reveal about this patient's condition
+2. Which connections are most clinically significant and why
+3. What the doctor should pay closest attention to
+
+Respond as plain text only, no JSON. Write for a medical professional.`;
+
+                const aiResult = await geminiModel.generateContent(insightPrompt);
+                aiInsight = aiResult.response.text();
+            }
+        } catch (err) {
+            console.error('AI insight generation failed:', err.message);
+            aiInsight = null;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                graph: result.graph,
+                queryResult: result.queryResult,
+                aiInsight,
+                session: {
+                    _id: session._id,
+                    chiefComplaint: session.chiefComplaint,
+                    patientId: session.patientId,
+                    symptoms: session.symptoms,
+                    vitals: session.vitals,
+                    medicalHistory: session.medicalHistory,
+                    aiRecommendation: session.aiRecommendation,
+                },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     analyzeSession,
     getRecommendation,
@@ -309,4 +392,5 @@ module.exports = {
     getGraphStatsHandler,
     getGraphVisualization,
     getClusterDetail,
+    getPatientGraphVisualization,
 };
