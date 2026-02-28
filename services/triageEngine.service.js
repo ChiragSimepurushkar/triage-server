@@ -120,12 +120,13 @@ const lookupClinicalContext = (symptoms, vitals = {}) => {
 };
 
 /**
- * Build the full triage prompt for Gemini (graph-enhanced)
+ * Build the full triage prompt for Gemini (graph-enhanced + context-aware)
  * @param {object} patientData - Patient symptoms, vitals, history
  * @param {object} graphResult - Result from graphEngine.queryGraph()
+ * @param {string} contextSummaryText - Formatted patient context summary text
  * @returns {string} Complete prompt
  */
-const buildTriagePrompt = (patientData, graphResult) => {
+const buildTriagePrompt = (patientData, graphResult, contextSummaryText = '') => {
     // ── Primary clinical context ──
     let clinicalContext = 'No specific clinical context matched from knowledge base.';
     if (graphResult.primaryMatches && graphResult.primaryMatches.length > 0) {
@@ -192,6 +193,11 @@ const buildTriagePrompt = (patientData, graphResult) => {
         ? `${patientData.vitals.bp_systolic || '?'}/${patientData.vitals.bp_diastolic || '?'}`
         : 'N/A';
 
+    // ── Patient context summary section ──
+    const contextSection = contextSummaryText
+        ? `\n${contextSummaryText}\n`
+        : '';
+
     return `
 You are a clinical triage decision support system. Your role is to assist clinicians — NOT to diagnose patients.
 
@@ -203,7 +209,7 @@ PATIENT DATA:
 - Medical History: ${patientData.medicalHistory?.conditions?.join(', ') || 'None reported'}
 - Current Medications: ${patientData.medicalHistory?.medications?.join(', ') || 'None'}
 - Allergies: ${patientData.medicalHistory?.allergies || 'None known'}
-
+${contextSection}
 CLINICAL KNOWLEDGE BASE CONTEXT (from knowledge graph — ${graphResult.graphTraversal?.primaryCount || 0} primary matches, ${graphResult.graphTraversal?.differentialCount || 0} differentials found):
 ${clinicalContext}${differentialContext}${riskContext}${contraindicationContext}${questionContext}
 
@@ -212,16 +218,25 @@ Do NOT provide a diagnosis. Only assess urgency and recommend next steps for the
 Pay special attention to the CONTRAINDICATIONS listed above when forming your recommended_actions.
 Select 2-3 of the most clinically relevant clarifying questions for the clinician to ask.
 
+IMPORTANT: Provide your clinical reasoning as a STEP-BY-STEP trace. Each step should be a distinct phase of your assessment process.
+
 Respond in this exact JSON format:
 {
   "urgency_level": <1-5>,
   "urgency_label": "<CRITICAL|URGENT|MODERATE|LOW|OBSERVATION>",
   "primary_concern": "<brief clinical concern in one sentence>",
-  "reasoning": "<2-3 sentence clinical reasoning for urgency level, referencing specific symptoms, vitals, differentials, and risk amplifiers>",
+  "reasoning": "<2-3 sentence overall clinical reasoning summary>",
+  "reasoning_trace": [
+    { "step": "Symptom Assessment", "finding": "<what the symptom pattern suggests, severity analysis>" },
+    { "step": "Vital Signs Analysis", "finding": "<which vitals are normal/abnormal and what that indicates>" },
+    { "step": "Risk Factor Evaluation", "finding": "<how patient history and risk amplifiers affect the assessment>" },
+    { "step": "Urgency Determination", "finding": "<why this urgency level was chosen, what could change it>" }
+  ],
   "recommended_actions": ["<action 1>", "<action 2>", "<action 3>"],
   "vital_flags": ["<any abnormal vitals noted>"],
   "differentials_to_rule_out": ["<differential 1>", "<differential 2>"],
   "clarifying_questions": ["<question 1>", "<question 2>"],
+  "data_gaps": ["<any missing data that would improve assessment>"],
   "clinician_notes": "<additional context for the reviewing clinician including contraindication warnings>",
   "confidence": "<HIGH|MEDIUM|LOW>",
   "disclaimer": "This is AI-assisted triage support only. Clinical judgment of the reviewing clinician supersedes this recommendation."

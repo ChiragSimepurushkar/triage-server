@@ -4,6 +4,8 @@ const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
 const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors } = require('../services/graphEngine.service');
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
+const { buildPatientContextSummary, formatSummaryForPrompt } = require('../services/patientContextSummary.service');
+const { calibrateConfidence } = require('../services/confidenceCalibration.service');
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
 const path = require('path');
@@ -39,20 +41,34 @@ const analyzeSession = async (req, res, next) => {
             medicalHistory: session.medicalHistory,
         };
 
-        // Step 1: Graph-based clinical context lookup (replaces flat lookup)
+        // Step 1: Graph-based clinical context lookup
         const graphResult = queryGraph(
             session.symptoms,
             session.vitals,
             session.medicalHistory
         );
 
-        // Step 2: Build graph-enhanced prompt
-        const prompt = buildTriagePrompt(patientData, graphResult);
+        // Step 2: Generate patient context summary
+        const contextSummary = buildPatientContextSummary(patientData, graphResult);
+        const contextSummaryText = formatSummaryForPrompt(contextSummary);
 
-        // Step 3: Call Gemini
+        // Step 3: Build graph-enhanced prompt with context summary
+        const prompt = buildTriagePrompt(patientData, graphResult, contextSummaryText);
+
+        // Step 4: Call Gemini
         const aiResult = await generateTriageResponse(prompt);
 
-        // Step 4: Save AI recommendation
+        // Step 5: Run confidence calibration (independent algorithmic layer)
+        const calibration = calibrateConfidence({
+            aiResult,
+            graphResult,
+            contextSummary,
+            patientData,
+        });
+
+        console.log(`🎯 Confidence: ${calibration.confidenceScore}/100 (${calibration.confidenceLevel})${calibration.requiresHumanReview ? ' ⚠ FLAGGED FOR REVIEW' : ''}`);
+
+        // Step 6: Save AI recommendation with calibrated confidence + reasoning traces
         const knowledgeBaseCluster =
             graphResult.primaryMatches.length > 0 ? graphResult.primaryMatches[0].clusterId : null;
 
@@ -61,10 +77,18 @@ const analyzeSession = async (req, res, next) => {
             urgency_label: aiResult.urgency_label,
             primary_concern: aiResult.primary_concern,
             reasoning: aiResult.reasoning,
+            reasoning_trace: aiResult.reasoning_trace || [],
             recommended_actions: aiResult.recommended_actions || [],
             vital_flags: aiResult.vital_flags || [],
+            differentials_to_rule_out: aiResult.differentials_to_rule_out || [],
+            clarifying_questions: aiResult.clarifying_questions || [],
             clinician_notes: aiResult.clinician_notes,
-            confidence: aiResult.confidence,
+            confidence: calibration.confidenceLevel, // Use calibrated, not Gemini self-reported
+            confidenceScore: calibration.confidenceScore,
+            uncertaintyFlags: calibration.uncertaintyFlags,
+            requiresHumanReview: calibration.requiresHumanReview,
+            reviewReasons: calibration.reviewReasons,
+            patientContextSummary: contextSummary,
             knowledgeBaseCluster,
             disclaimer: aiResult.disclaimer,
             processedAt: new Date(),
@@ -77,16 +101,24 @@ const analyzeSession = async (req, res, next) => {
         await AIRecommendation.create({
             sessionId: session._id,
             ...aiResult,
+            reasoning_trace: aiResult.reasoning_trace || [],
+            differentials_to_rule_out: aiResult.differentials_to_rule_out || [],
+            clarifying_questions: aiResult.clarifying_questions || [],
+            confidenceScore: calibration.confidenceScore,
+            confidence: calibration.confidenceLevel,
+            uncertaintyFlags: calibration.uncertaintyFlags,
+            requiresHumanReview: calibration.requiresHumanReview,
+            reviewReasons: calibration.reviewReasons,
+            patientContextSummary: contextSummary,
             knowledgeBaseCluster,
             rawResponse: JSON.stringify(aiResult),
         });
 
-        // Step 5: Send critical alert email if urgency is CRITICAL
+        // Step 7: Send critical alert email if urgency is CRITICAL
         if (aiResult.urgency_level === 1) {
             const patientUser = await require('../models/User.model').findById(session.patientId);
-            // Non-blocking email — don't await
             sendCriticalAlert({
-                to: process.env.EMAIL_USER, // Send to configured admin/clinician email
+                to: process.env.EMAIL_USER,
                 patientName: patientUser?.name || 'Unknown Patient',
                 urgencyLabel: aiResult.urgency_label,
                 primaryConcern: aiResult.primary_concern,
@@ -107,6 +139,12 @@ const analyzeSession = async (req, res, next) => {
                     cluster: r.amplifiedCluster,
                 })),
                 clarifyingQuestions: graphResult.clarifyingQuestions.map((q) => q.question),
+                confidenceCalibration: {
+                    score: calibration.confidenceScore,
+                    level: calibration.confidenceLevel,
+                    requiresHumanReview: calibration.requiresHumanReview,
+                    flags: calibration.uncertaintyFlags.length,
+                },
             },
         });
     } catch (error) {
