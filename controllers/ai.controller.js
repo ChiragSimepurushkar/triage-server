@@ -6,6 +6,7 @@ const { generateTriageResponse, initGemini } = require('../services/gemini.servi
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
 const path = require('path');
+const Tesseract = require('tesseract.js');
 
 // @desc    Analyze a triage session with AI
 // @route   POST /api/ai/analyze/:sessionId
@@ -185,19 +186,34 @@ IMPORTANT:
         let result;
 
         if (mimeType.startsWith('image/')) {
-            // Image file — use Gemini multimodal
-            const imageData = fs.readFileSync(filePath);
-            const base64 = imageData.toString('base64');
+            // OCR-first approach: extract text with Tesseract.js, then send text to Gemini
+            // This avoids expensive multimodal calls and 429 rate-limit errors
+            console.log('🔍 Running Tesseract OCR on image...');
+            const ocrResult = await Tesseract.recognize(filePath, 'eng');
+            const ocrText = ocrResult.data?.text?.trim() || '';
+            console.log(`📄 OCR extracted ${ocrText.length} characters`);
 
-            result = await geminiModel.generateContent([
-                PARSE_PROMPT + '\n\nThis is an image of a medical report. Extract all visible health data.',
-                {
-                    inlineData: {
-                        mimeType: mimeType,
-                        data: base64,
+            if (ocrText.length > 50) {
+                // Good OCR result — send as text to Gemini (much cheaper than multimodal)
+                result = await geminiModel.generateContent(
+                    PARSE_PROMPT + `\n\nOCR-extracted text from medical report image:\n${ocrText.slice(0, 15000)}`
+                );
+            } else {
+                // OCR yielded very little text — fallback to Gemini multimodal
+                console.log('⚠️ OCR text too short, falling back to Gemini multimodal...');
+                const imageData = fs.readFileSync(filePath);
+                const base64 = imageData.toString('base64');
+
+                result = await geminiModel.generateContent([
+                    PARSE_PROMPT + '\n\nThis is an image of a medical report. Extract all visible health data.',
+                    {
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64,
+                        },
                     },
-                },
-            ]);
+                ]);
+            }
         } else {
             // Text file (XML, JSON, CSV, etc.)
             const fileContent = fs.readFileSync(filePath, 'utf-8');
