@@ -7,8 +7,10 @@ const {
     getGraphStatsHandler,
     getGraphVisualization,
     getClusterDetail,
+    getPatientGraphVisualization,
 } = require('../controllers/ai.controller');
 const { protect } = require('../middleware/auth.middleware');
+const { requireRole } = require('../middleware/role.middleware');
 const multer = require('multer');
 
 // Multer for temp file uploads (health report files)
@@ -36,9 +38,10 @@ router.post('/analyze/:sessionId', protect, analyzeSession);
 router.get('/recommendation/:sessionId', protect, getRecommendation);
 router.post('/parse-health-file', protect, upload.single('healthFile'), parseHealthFile);
 
-// Graph API routes (public for frontend visualization, protected for dev/demo)
+// Graph API routes
 router.get('/graph/stats', getGraphStatsHandler);
 router.get('/graph/visualize', getGraphVisualization);
 router.get('/graph/cluster/:clusterId', getClusterDetail);
+router.get('/graph/patient/:sessionId', protect, requireRole('clinician', 'admin'), getPatientGraphVisualization);
 
 module.exports = router;

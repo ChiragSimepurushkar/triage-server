@@ -416,10 +416,156 @@ const getClusterNeighbors = (clusterId) => {
     };
 };
 
+/**
+ * Return all symptom tags available in the graph.
+ */
+const getAvailableSymptomTags = () => {
+    if (!clinicalGraph) buildGraph();
+    const tags = [];
+    clinicalGraph.forEachNode((id, attrs) => {
+        if (attrs.type === 'symptom') tags.push(attrs.label);
+    });
+    return tags;
+};
+
+/**
+ * Export graph enriched with patient-specific highlights for clinician visualization.
+ * @param {{ symptoms: Array, vitals: object, medicalHistory: object }} sessionData
+ * @returns {{ graph: { nodes: Array, edges: Array }, queryResult: object }}
+ */
+const exportPatientGraph = (sessionData) => {
+    if (!clinicalGraph) buildGraph();
+
+    const { symptoms = [], vitals = {}, medicalHistory = {} } = sessionData;
+    const qr = queryGraph(symptoms, vitals, medicalHistory);
+
+    // Build sets for O(1) lookup
+    const primaryClusterIds = new Set(qr.primaryMatches.map((m) => m.clusterId));
+    const differentialIds = new Set(qr.differentials.map((d) => d.clusterId));
+    const sharedClusterIds = new Set(qr.sharedClusters.map((s) => s.clusterId));
+
+    const matchedSymptomLabels = new Set();
+    for (const m of qr.primaryMatches) {
+        for (const s of m.matchedSymptoms || []) matchedSymptomLabels.add(s);
+    }
+
+    const riskFactorNames = new Set(
+        qr.riskMatches.map((r) => r.riskFactor.replace(/\s+/g, '_'))
+    );
+
+    // ── Build enriched nodes ──
+    const nodes = [];
+    clinicalGraph.forEachNode((id, attrs) => {
+        let highlighted = false;
+        let highlightType = null;
+        let highlightReason = null;
+
+        if (attrs.type === 'cluster') {
+            if (primaryClusterIds.has(id)) {
+                highlighted = true;
+                highlightType = 'primary_match';
+                const m = qr.primaryMatches.find((x) => x.clusterId === id);
+                highlightReason = `Primary match — ${m.matchCount} symptoms matched (${m.matchedSymptoms.join(', ')})`;
+            } else if (differentialIds.has(id)) {
+                highlighted = true;
+                highlightType = 'differential';
+                const d = qr.differentials.find((x) => x.clusterId === id);
+                highlightReason = `Differential diagnosis linked from ${d.linkedFrom}`;
+            } else if (sharedClusterIds.has(id)) {
+                highlighted = true;
+                highlightType = 'shared_symptom';
+                const s = qr.sharedClusters.find((x) => x.clusterId === id);
+                highlightReason = `Shares symptoms (${s.sharedSymptoms.join(', ')}) with ${s.linkedFrom}`;
+            }
+        } else if (attrs.type === 'symptom') {
+            const tag = attrs.label;
+            if (matchedSymptomLabels.has(tag)) {
+                highlighted = true;
+                highlightType = 'matched_symptom';
+                highlightReason = `Patient-reported symptom`;
+            }
+        } else if (attrs.type === 'risk_factor') {
+            const riskName = id.replace('risk:', '');
+            if (riskFactorNames.has(riskName)) {
+                highlighted = true;
+                highlightType = 'risk_amplifier';
+                const rm = qr.riskMatches.find(
+                    (r) => r.riskFactor.replace(/\s+/g, '_') === riskName
+                );
+                highlightReason = rm
+                    ? `Patient risk factor — amplifies ${rm.amplifiedCluster}`
+                    : 'Patient risk factor from medical history';
+            }
+        }
+
+        // Determine display color
+        let color;
+        if (attrs.type === 'cluster') {
+            const colorMap = { red: '#EF4444', orange: '#F97316', yellow: '#EAB308', green: '#22C55E', blue: '#3B82F6' };
+            color = colorMap[attrs.color] || '#6B7280';
+        } else if (attrs.type === 'symptom') {
+            color = '#8B5CF6';
+        } else {
+            color = '#F59E0B';
+        }
+
+        nodes.push({
+            id,
+            label: attrs.label || id.replace(/_/g, ' '),
+            type: attrs.type,
+            urgency_level: attrs.urgency_level || null,
+            urgency_label: attrs.urgency_label || null,
+            color,
+            presentation: attrs.presentation || null,
+            clinical_context: attrs.clinical_context || null,
+            next_actions: attrs.next_actions || null,
+            contraindications: attrs.contraindications || null,
+            highlighted,
+            highlightType,
+            highlightReason,
+        });
+    });
+
+    // ── Build enriched edges ──
+    const allHighlightedNodeIds = new Set(
+        nodes.filter((n) => n.highlighted).map((n) => n.id)
+    );
+
+    const edges = [];
+    clinicalGraph.forEachEdge((id, attrs, source, target) => {
+        const edgeHighlighted =
+            allHighlightedNodeIds.has(source) && allHighlightedNodeIds.has(target);
+
+        edges.push({
+            id,
+            source,
+            target,
+            type: attrs.type,
+            weight: attrs.weight || 1,
+            shared_symptoms: attrs.shared_symptoms || null,
+            highlighted: edgeHighlighted,
+        });
+    });
+
+    return {
+        graph: { nodes, edges, stats: getGraphStats() },
+        queryResult: {
+            primaryMatches: qr.primaryMatches,
+            differentials: qr.differentials,
+            riskMatches: qr.riskMatches,
+            sharedClusters: qr.sharedClusters,
+            clarifyingQuestions: qr.clarifyingQuestions,
+            traversal: qr.graphTraversal,
+        },
+    };
+};
+
 module.exports = {
     buildGraph,
     queryGraph,
     getGraphStats,
     exportGraphForVisualization,
     getClusterNeighbors,
+    exportPatientGraph,
+    getAvailableSymptomTags,
 };
