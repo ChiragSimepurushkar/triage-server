@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { analyzeSession, getRecommendation, parseHealthFile } = require('../controllers/ai.controller');
+const {
+    analyzeSession,
+    getRecommendation,
+    parseHealthFile,
+    getGraphStatsHandler,
+    getGraphVisualization,
+    getClusterDetail,
+} = require('../controllers/ai.controller');
 const { protect } = require('../middleware/auth.middleware');
 const multer = require('multer');
 
@@ -24,8 +31,14 @@ const upload = multer({
     },
 });
 
+// AI analysis routes
 router.post('/analyze/:sessionId', protect, analyzeSession);
 router.get('/recommendation/:sessionId', protect, getRecommendation);
 router.post('/parse-health-file', protect, upload.single('healthFile'), parseHealthFile);
+
+// Graph API routes (public for frontend visualization, protected for dev/demo)
+router.get('/graph/stats', getGraphStatsHandler);
+router.get('/graph/visualize', getGraphVisualization);
+router.get('/graph/cluster/:clusterId', getClusterDetail);
 
 module.exports = router;

@@ -2,6 +2,7 @@ const TriageSession = require('../models/TriageSession.model');
 const AIRecommendation = require('../models/AIRecommendation.model');
 const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
+const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors } = require('../services/graphEngine.service');
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
@@ -38,18 +39,22 @@ const analyzeSession = async (req, res, next) => {
             medicalHistory: session.medicalHistory,
         };
 
-        // Step 1: Look up clinical context from knowledge base
-        const clinicalMatches = lookupClinicalContext(session.symptoms, session.vitals);
+        // Step 1: Graph-based clinical context lookup (replaces flat lookup)
+        const graphResult = queryGraph(
+            session.symptoms,
+            session.vitals,
+            session.medicalHistory
+        );
 
-        // Step 2: Build prompt with clinical context
-        const prompt = buildTriagePrompt(patientData, clinicalMatches);
+        // Step 2: Build graph-enhanced prompt
+        const prompt = buildTriagePrompt(patientData, graphResult);
 
         // Step 3: Call Gemini
         const aiResult = await generateTriageResponse(prompt);
 
         // Step 4: Save AI recommendation
         const knowledgeBaseCluster =
-            clinicalMatches.length > 0 ? clinicalMatches[0].clusterId : null;
+            graphResult.primaryMatches.length > 0 ? graphResult.primaryMatches[0].clusterId : null;
 
         session.aiRecommendation = {
             urgency_level: aiResult.urgency_level,
@@ -94,8 +99,14 @@ const analyzeSession = async (req, res, next) => {
             message: 'AI analysis complete',
             data: {
                 session,
-                knowledgeBaseMatches: clinicalMatches.length,
-                matchedClusters: clinicalMatches.map((m) => m.clusterId),
+                graphTraversal: graphResult.graphTraversal,
+                matchedClusters: graphResult.primaryMatches.map((m) => m.clusterId),
+                differentials: graphResult.differentials.map((d) => d.clusterId),
+                riskAmplifiers: graphResult.riskMatches.map((r) => ({
+                    factor: r.riskFactor,
+                    cluster: r.amplifiedCluster,
+                })),
+                clarifyingQuestions: graphResult.clarifyingQuestions.map((q) => q.question),
             },
         });
     } catch (error) {
@@ -269,4 +280,33 @@ IMPORTANT:
     }
 };
 
-module.exports = { analyzeSession, getRecommendation, parseHealthFile };
+// @desc    Get clinical knowledge graph stats
+// @route   GET /api/ai/graph/stats
+const getGraphStatsHandler = (req, res) => {
+    res.json({ success: true, data: getGraphStats() });
+};
+
+// @desc    Export graph for frontend visualization
+// @route   GET /api/ai/graph/visualize
+const getGraphVisualization = (req, res) => {
+    res.json({ success: true, data: exportGraphForVisualization() });
+};
+
+// @desc    Get cluster neighbors (symptoms, differentials, risks)
+// @route   GET /api/ai/graph/cluster/:clusterId
+const getClusterDetail = (req, res) => {
+    const result = getClusterNeighbors(req.params.clusterId);
+    if (!result) {
+        return res.status(404).json({ success: false, message: 'Cluster not found in graph' });
+    }
+    res.json({ success: true, data: result });
+};
+
+module.exports = {
+    analyzeSession,
+    getRecommendation,
+    parseHealthFile,
+    getGraphStatsHandler,
+    getGraphVisualization,
+    getClusterDetail,
+};
