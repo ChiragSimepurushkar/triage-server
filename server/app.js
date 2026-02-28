@@ -23,6 +23,7 @@ app.use(cors({
             'http://localhost:8080',
             'http://localhost:8081',
             'http://localhost:5173',
+            'https://triage-health-hub.vercel.app',
         ];
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin || allowedOrigins.includes(origin)) {
@@ -38,6 +39,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // --- Health Check ---
+app.get('/', (req, res) => {
+    res.send('TriageIQ API is running!');
+});
+
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'TriageIQ API', timestamp: new Date().toISOString() });
 });
