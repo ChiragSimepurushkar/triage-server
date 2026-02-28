@@ -417,6 +417,18 @@ const getClusterNeighbors = (clusterId) => {
 };
 
 /**
+ * Return all symptom tags available in the graph.
+ */
+const getAvailableSymptomTags = () => {
+    if (!clinicalGraph) buildGraph();
+    const tags = [];
+    clinicalGraph.forEachNode((id, attrs) => {
+        if (attrs.type === 'symptom') tags.push(attrs.label);
+    });
+    return tags;
+};
+
+/**
  * Export graph enriched with patient-specific highlights for clinician visualization.
  * @param {{ symptoms: Array, vitals: object, medicalHistory: object }} sessionData
  * @returns {{ graph: { nodes: Array, edges: Array }, queryResult: object }}
@@ -555,4 +567,5 @@ module.exports = {
     exportGraphForVisualization,
     getClusterNeighbors,
     exportPatientGraph,
+    getAvailableSymptomTags,
 };

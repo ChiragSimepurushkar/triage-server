@@ -2,7 +2,7 @@ const TriageSession = require('../models/TriageSession.model');
 const AIRecommendation = require('../models/AIRecommendation.model');
 const Patient = require('../models/Patient.model');
 const { lookupClinicalContext, buildTriagePrompt } = require('../services/triageEngine.service');
-const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors, exportPatientGraph } = require('../services/graphEngine.service');
+const { queryGraph, getGraphStats, exportGraphForVisualization, getClusterNeighbors, exportPatientGraph, getAvailableSymptomTags } = require('../services/graphEngine.service');
 const { generateTriageResponse, initGemini } = require('../services/gemini.service');
 const { sendCriticalAlert } = require('../services/email.service');
 const fs = require('fs');
@@ -311,9 +311,56 @@ const getPatientGraphVisualization = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Triage session not found' });
         }
 
-        // Generate patient-highlighted graph
+        // Step 1: Use Gemini to map patient symptoms to closest KB tags
+        let enrichedSymptoms = [...(session.symptoms || [])];
+        try {
+            const geminiModel = initGemini();
+            if (geminiModel && session.symptoms?.length > 0) {
+                const availableTags = getAvailableSymptomTags();
+                const symptomNames = session.symptoms.map((s) =>
+                    typeof s === 'string' ? s : s.name || ''
+                ).filter(Boolean);
+
+                const mapPrompt = `You are a medical terminology mapper. Map each patient symptom below to the closest matching tags from the clinical knowledge base.
+
+PATIENT SYMPTOMS: ${symptomNames.join(', ')}
+
+AVAILABLE KB TAGS: ${availableTags.join(', ')}
+
+For each patient symptom, find 1-3 closest matching KB tags. A match can be a synonym, related concept, or the same body system.
+
+Respond ONLY with a JSON array of objects, no markdown:
+[{"symptom": "original symptom", "mapped_tags": ["tag1", "tag2"]}]`;
+
+                const mapResult = await geminiModel.generateContent(mapPrompt);
+                const mapText = mapResult.response.text();
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(mapText);
+                } catch {
+                    const jsonMatch = mapText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+                    if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+                }
+
+                if (Array.isArray(parsed)) {
+                    for (const mapping of parsed) {
+                        for (const tag of mapping.mapped_tags || []) {
+                            const clean = tag.trim().replace(/\s+/g, ' ');
+                            if (clean && !symptomNames.some((s) => s.toLowerCase() === clean.toLowerCase())) {
+                                enrichedSymptoms.push({ name: clean, severity: 3, duration: 'mapped' });
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Symptom mapping failed (continuing with originals):', err.message);
+        }
+
+        // Step 2: Generate patient-highlighted graph with enriched symptoms
         const result = exportPatientGraph({
-            symptoms: session.symptoms,
+            symptoms: enrichedSymptoms,
             vitals: session.vitals,
             medicalHistory: session.medicalHistory,
         });
