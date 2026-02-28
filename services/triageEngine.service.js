@@ -67,17 +67,35 @@ const lookupClinicalContext = (symptoms, vitals = {}) => {
             // Check vital flags for additional urgency
             let vitalFlagsTriggered = [];
             if (cluster.vital_flags && vitals) {
+                // Systolic BP — high and low
                 if (cluster.vital_flags.bp_systolic_gt && vitals.bp_systolic > cluster.vital_flags.bp_systolic_gt) {
-                    vitalFlagsTriggered.push(`BP systolic ${vitals.bp_systolic} > ${cluster.vital_flags.bp_systolic_gt}`);
+                    vitalFlagsTriggered.push(`BP systolic ${vitals.bp_systolic} > ${cluster.vital_flags.bp_systolic_gt} mmHg`);
                 }
-                if (cluster.vital_flags.spo2_lt && vitals.spo2 < cluster.vital_flags.spo2_lt) {
-                    vitalFlagsTriggered.push(`SpO2 ${vitals.spo2}% < ${cluster.vital_flags.spo2_lt}%`);
+                if (cluster.vital_flags.bp_systolic_lt && vitals.bp_systolic < cluster.vital_flags.bp_systolic_lt) {
+                    vitalFlagsTriggered.push(`BP systolic ${vitals.bp_systolic} < ${cluster.vital_flags.bp_systolic_lt} mmHg (hypotension)`);
                 }
+                // Diastolic BP — high
+                if (cluster.vital_flags.bp_diastolic_gt && vitals.bp_diastolic > cluster.vital_flags.bp_diastolic_gt) {
+                    vitalFlagsTriggered.push(`BP diastolic ${vitals.bp_diastolic} > ${cluster.vital_flags.bp_diastolic_gt} mmHg`);
+                }
+                // Heart rate — high and low
                 if (cluster.vital_flags.hr_gt && vitals.heart_rate > cluster.vital_flags.hr_gt) {
-                    vitalFlagsTriggered.push(`HR ${vitals.heart_rate} > ${cluster.vital_flags.hr_gt}`);
+                    vitalFlagsTriggered.push(`HR ${vitals.heart_rate} > ${cluster.vital_flags.hr_gt} bpm (tachycardia)`);
                 }
+                if (cluster.vital_flags.hr_lt && vitals.heart_rate < cluster.vital_flags.hr_lt) {
+                    vitalFlagsTriggered.push(`HR ${vitals.heart_rate} < ${cluster.vital_flags.hr_lt} bpm (bradycardia)`);
+                }
+                // SpO2 — low
+                if (cluster.vital_flags.spo2_lt && vitals.spo2 < cluster.vital_flags.spo2_lt) {
+                    vitalFlagsTriggered.push(`SpO2 ${vitals.spo2}% < ${cluster.vital_flags.spo2_lt}% (hypoxia)`);
+                }
+                // Respiratory rate — high
                 if (cluster.vital_flags.rr_gt && vitals.respiratory_rate > cluster.vital_flags.rr_gt) {
-                    vitalFlagsTriggered.push(`RR ${vitals.respiratory_rate} > ${cluster.vital_flags.rr_gt}`);
+                    vitalFlagsTriggered.push(`RR ${vitals.respiratory_rate} > ${cluster.vital_flags.rr_gt}/min (tachypnoea)`);
+                }
+                // Temperature — high
+                if (cluster.vital_flags.temp_gt && vitals.temperature > cluster.vital_flags.temp_gt) {
+                    vitalFlagsTriggered.push(`Temp ${vitals.temperature}°C > ${cluster.vital_flags.temp_gt}°C (fever)`);
                 }
             }
 
